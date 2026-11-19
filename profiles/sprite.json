@@ -1,0 +1,100 @@
+{
+  "id": "sprite",
+  "kind": "sprite",
+  "title": "Sprite / prop / item",
+  "description": "One object with a transparent background: props, items, pickups, weapons, furniture, UI pieces. FLUX.2 Klein 4B, several takes ranked by CLIP, cut out with BiRefNet, defringed, cropped and centred.",
+  "status": "tested",
+  "graph": "../graphs/klein_t2i.json",
+  "vram_group": "klein",
+  "min_vram_gb": 8,
+  "batch": true,
+  "prompt_template": "{prompt}{style}. A single game asset, {view}, the whole object fully visible and centred with empty space around it, {background}, no shadow, no text, no frame",
+  "prompt_guide": "Name the object, its material and colours, and its shape: 'a rusty iron key with a ring bow and three teeth' - 'a glowing blue mana potion in a round glass flask with a cork' - 'a wooden treasure chest with brass corners, lid closed'. One object per sprite. Say the angle with params.view ('front view', 'side view', 'top-down view', 'isometric view').",
+  "set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "5.text": "{prompt}",
+    "7.width": "{width}",
+    "7.height": "{height}",
+    "7.batch_size": "{candidates}",
+    "8.noise_seed": "{seed}",
+    "10.steps": "{steps}",
+    "10.width": "{width}",
+    "10.height": "{height}",
+    "11.cfg": "{cfg}"
+  },
+  "tiers": {
+    "8": {
+      "limits": {
+        "candidates": 2
+      }
+    }
+  },
+  "presets": {
+    "fast": {
+      "description": "one take",
+      "params": {
+        "candidates": 1
+      }
+    },
+    "max": {
+      "description": "Z-Image Turbo (6B) with 4 takes - more detail",
+      "graph": "../graphs/z_image_t2i.json",
+      "set": {
+        "1.unet_name": "{model}",
+        "2.clip_name": "{text_encoder}",
+        "5.text": "{prompt}",
+        "7.width": "{width}",
+        "7.height": "{height}",
+        "7.batch_size": "{candidates}",
+        "8.seed": "{seed}",
+        "8.steps": "{steps}",
+        "8.cfg": "{cfg}"
+      },
+      "vram_group": "zimage",
+      "params": {
+        "model": "z_image_turbo_int8_convrot.safetensors",
+        "steps": 8,
+        "candidates": 4
+      }
+    }
+  },
+  "params": {
+    "model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1.0,
+    "candidates": 4,
+    "view": "three-quarter view",
+    "remove_background": true,
+    "defringe": true,
+    "size": 512,
+    "padding": 0.06,
+    "anchor": "center",
+    "background": "plain flat light grey background",
+    "rank_by_clip": true,
+    "keep_candidates": true,
+    "sizes": []
+  },
+  "param_help": {
+    "model": "diffusion model file (the preset normally picks it)",
+    "text_encoder": "text encoder file",
+    "width": "generation width in pixels (multiple of 16)",
+    "height": "generation height in pixels (multiple of 16)",
+    "steps": "sampling steps (the distilled models are made for 4 / 8)",
+    "cfg": "guidance (1.0 for the distilled models)",
+    "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
+    "view": "camera angle words added to the prompt, e.g. 'front view', 'side view', 'top-down view', 'isometric view'",
+    "remove_background": "cut the subject out with BiRefNet (transparent PNG)",
+    "defringe": "re-colour soft edges so no grey halo shows on dark backgrounds",
+    "size": "output canvas in pixels (square); null keeps the tight crop at full resolution",
+    "padding": "empty margin around the sprite, as a share of the canvas",
+    "anchor": "center, or bottom (feet on the ground line - characters and animation frames)",
+    "background": "what the model is told to put behind the subject; plain and light makes the cut-out cleanest",
+    "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
+    "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result",
+    "sizes": "extra square sizes to export (name_128.png ...)"
+  }
+}

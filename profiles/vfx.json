@@ -1,0 +1,108 @@
+{
+  "id": "vfx",
+  "kind": "vfx",
+  "title": "VFX frames",
+  "description": "An effect animation (explosion, smoke puff, magic burst, fire, hit spark) as frames, a sprite sheet and an atlas. The peak frame is generated first, the other stages are edits of it; brightness becomes transparency.",
+  "status": "experimental",
+  "graph": "../graphs/klein_t2i.json",
+  "vram_group": "klein",
+  "edit_graph": "../graphs/klein_edit.json",
+  "min_vram_gb": 8,
+  "batch": true,
+  "prompt_template": "{prompt}{style}. A single game visual effect at its peak, centred with empty space around it, on a pure black background, bright and glowing, no ground, no text",
+  "prompt_guide": "The effect, its colours and shape: 'fiery orange explosion with black smoke', 'blue arcane magic burst with sparkles', 'white dust puff'. Effects on black are cut out by brightness: draw them with additive or normal blending.",
+  "set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "5.text": "{prompt}",
+    "7.width": "{width}",
+    "7.height": "{height}",
+    "7.batch_size": "{candidates}",
+    "8.noise_seed": "{seed}",
+    "10.steps": "{steps}",
+    "10.width": "{width}",
+    "10.height": "{height}",
+    "11.cfg": "{cfg}"
+  },
+  "edit_set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "4.image": "{ref_file}",
+    "7.text": "{prompt}",
+    "11.width": "{width}",
+    "11.height": "{height}",
+    "11.batch_size": "{candidates}",
+    "12.noise_seed": "{seed}",
+    "14.steps": "{steps}",
+    "14.width": "{width}",
+    "14.height": "{height}",
+    "15.cfg": "{cfg}"
+  },
+  "tiers": {
+    "8": {
+      "limits": {
+        "candidates": 2
+      }
+    }
+  },
+  "presets": {
+    "fast": {
+      "description": "4 frames, one take",
+      "params": {
+        "frames": 4,
+        "candidates": 1
+      }
+    },
+    "max": {
+      "description": "8 frames, 4 takes for the peak",
+      "params": {
+        "frames": 8,
+        "candidates": 4
+      }
+    }
+  },
+  "params": {
+    "model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1.0,
+    "candidates": 2,
+    "frames": 6,
+    "stages": null,
+    "cell": 256,
+    "fps": 12,
+    "alpha_mode": "luminance",
+    "remove_background": true,
+    "defringe": true,
+    "size": null,
+    "padding": 0.02,
+    "anchor": "center",
+    "background": "pure black background",
+    "rank_by_clip": true,
+    "keep_candidates": true
+  },
+  "param_help": {
+    "model": "diffusion model file (the preset normally picks it)",
+    "text_encoder": "text encoder file",
+    "width": "generation width in pixels (multiple of 16)",
+    "height": "generation height in pixels (multiple of 16)",
+    "steps": "sampling steps (the distilled models are made for 4 / 8)",
+    "cfg": "guidance (1.0 for the distilled models)",
+    "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
+    "frames": "number of frames",
+    "stages": "your own description per frame (a list); overrides the built-in start / grow / peak / fade stages",
+    "cell": "frame size in pixels for the sheet (square)",
+    "fps": "playback speed written into the atlas",
+    "alpha_mode": "luminance (bright = opaque, for effects drawn on black) or cutout (BiRefNet)",
+    "remove_background": "cut the subject out with BiRefNet (transparent PNG)",
+    "defringe": "re-colour soft edges so no grey halo shows on dark backgrounds",
+    "size": "output canvas in pixels (square); null keeps the tight crop at full resolution",
+    "padding": "empty margin around the sprite, as a share of the canvas",
+    "anchor": "center, or bottom (feet on the ground line - characters and animation frames)",
+    "background": "what the model is told to put behind the subject; plain and light makes the cut-out cleanest",
+    "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
+    "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result"
+  }
+}

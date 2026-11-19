@@ -1,0 +1,102 @@
+{
+  "id": "tile",
+  "kind": "tile",
+  "title": "Seamless tile / texture",
+  "description": "A square texture that tiles without a visible seam: ground, walls, floors, water, foliage. Optional pixel-art version. Ranked by seam visibility and prompt match.",
+  "status": "tested",
+  "graph": "../graphs/klein_t2i.json",
+  "vram_group": "klein",
+  "min_vram_gb": 8,
+  "batch": true,
+  "prompt_template": "Seamless tileable texture of {prompt}{style}, viewed straight from above, flat even lighting, no shadows, no perspective, no single large object, the pattern fills the whole square evenly to every edge",
+  "prompt_guide": "The surface and its scale: 'mossy cobblestone path', 'dry cracked desert ground', 'oak wood planks floor', 'shallow water with ripples', 'dense jungle leaves'. Organic surfaces tile best; strict geometric patterns (bricks, tiles) may show a soft double image where the seam was blended.",
+  "set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "5.text": "{prompt}",
+    "7.width": "{width}",
+    "7.height": "{height}",
+    "7.batch_size": "{candidates}",
+    "8.noise_seed": "{seed}",
+    "10.steps": "{steps}",
+    "10.width": "{width}",
+    "10.height": "{height}",
+    "11.cfg": "{cfg}"
+  },
+  "tiers": {
+    "8": {
+      "limits": {
+        "candidates": 2
+      }
+    }
+  },
+  "presets": {
+    "fast": {
+      "description": "one take",
+      "params": {
+        "candidates": 1
+      }
+    },
+    "max": {
+      "description": "Z-Image Turbo with 4 takes",
+      "graph": "../graphs/z_image_t2i.json",
+      "set": {
+        "1.unet_name": "{model}",
+        "2.clip_name": "{text_encoder}",
+        "5.text": "{prompt}",
+        "7.width": "{width}",
+        "7.height": "{height}",
+        "7.batch_size": "{candidates}",
+        "8.seed": "{seed}",
+        "8.steps": "{steps}",
+        "8.cfg": "{cfg}"
+      },
+      "vram_group": "zimage",
+      "params": {
+        "model": "z_image_turbo_int8_convrot.safetensors",
+        "steps": 8,
+        "candidates": 4
+      }
+    }
+  },
+  "params": {
+    "model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1.0,
+    "candidates": 3,
+    "remove_background": false,
+    "defringe": false,
+    "seamless": true,
+    "blend": 0.25,
+    "size": 512,
+    "pixelize": false,
+    "grid": 32,
+    "colors": 16,
+    "palette": null,
+    "rank_by_clip": true,
+    "keep_candidates": true
+  },
+  "param_help": {
+    "model": "diffusion model file (the preset normally picks it)",
+    "text_encoder": "text encoder file",
+    "width": "generation width in pixels (multiple of 16)",
+    "height": "generation height in pixels (multiple of 16)",
+    "steps": "sampling steps (the distilled models are made for 4 / 8)",
+    "cfg": "guidance (1.0 for the distilled models)",
+    "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
+    "remove_background": "cut the subject out with BiRefNet (transparent PNG)",
+    "defringe": "re-colour soft edges so no grey halo shows on dark backgrounds",
+    "seamless": "make the texture tile without a visible seam",
+    "blend": "seamless: width of the crossfade band (0.1-0.4)",
+    "size": "output canvas in pixels (square); null keeps the tight crop at full resolution",
+    "pixelize": "also turn the texture into pixel art (uses grid and colors)",
+    "grid": "pixel art: the sprite's longest side in real pixels (16, 24, 32, 48, 64 ...), or \"auto\" to keep the pixel size the model drew",
+    "colors": "pixel art: palette size when no palette is given",
+    "palette": "pixel art: a named palette (pico8, gameboy, nes, endesga32, sweetie16), a list of hex colours, or \"project\" = one palette frozen for the whole game (palette.hex, chosen by the first pixel asset); null = choose colours per sprite",
+    "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
+    "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result"
+  }
+}

@@ -1,0 +1,190 @@
+{
+ "1": {
+  "class_type": "UNETLoader",
+  "_meta": {
+   "title": "Load Z-Image Turbo"
+  },
+  "inputs": {
+   "unet_name": "z_image_turbo_int8_convrot.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "2": {
+  "class_type": "CLIPLoader",
+  "_meta": {
+   "title": "Load Qwen3 4B text encoder"
+  },
+  "inputs": {
+   "clip_name": "qwen_3_4b_fp8_mixed.safetensors",
+   "type": "lumina2",
+   "device": "default"
+  }
+ },
+ "3": {
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Load VAE"
+  },
+  "inputs": {
+   "vae_name": "ae.safetensors"
+  }
+ },
+ "4": {
+  "class_type": "ModelSamplingAuraFlow",
+  "_meta": {
+   "title": "Shift"
+  },
+  "inputs": {
+   "model": [
+    "1",
+    0
+   ],
+   "shift": 3.0
+  }
+ },
+ "5": {
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Prompt"
+  },
+  "inputs": {
+   "text": "",
+   "clip": [
+    "2",
+    0
+   ]
+  }
+ },
+ "6": {
+  "class_type": "ConditioningZeroOut",
+  "_meta": {
+   "title": "Empty negative"
+  },
+  "inputs": {
+   "conditioning": [
+    "5",
+    0
+   ]
+  }
+ },
+ "7": {
+  "class_type": "EmptySD3LatentImage",
+  "_meta": {
+   "title": "Canvas and takes"
+  },
+  "inputs": {
+   "width": 1024,
+   "height": 1024,
+   "batch_size": 1
+  }
+ },
+ "8": {
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "Generate"
+  },
+  "inputs": {
+   "model": [
+    "4",
+    0
+   ],
+   "seed": 0,
+   "steps": 8,
+   "cfg": 1.0,
+   "sampler_name": "res_multistep",
+   "scheduler": "simple",
+   "positive": [
+    "5",
+    0
+   ],
+   "negative": [
+    "6",
+    0
+   ],
+   "latent_image": [
+    "7",
+    0
+   ],
+   "denoise": 1.0
+  }
+ },
+ "9": {
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "Decode"
+  },
+  "inputs": {
+   "samples": [
+    "8",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  }
+ },
+ "20": {
+  "class_type": "SaveImage",
+  "_meta": {
+   "title": "Save picture"
+  },
+  "inputs": {
+   "images": [
+    "9",
+    0
+   ],
+   "filename_prefix": "spriteforge/out_rgb"
+  }
+ },
+ "21": {
+  "class_type": "LoadBackgroundRemovalModel",
+  "_meta": {
+   "title": "Load BiRefNet"
+  },
+  "inputs": {
+   "bg_removal_name": "birefnet.safetensors"
+  }
+ },
+ "22": {
+  "class_type": "RemoveBackground",
+  "_meta": {
+   "title": "Find the foreground"
+  },
+  "inputs": {
+   "bg_removal_model": [
+    "21",
+    0
+   ],
+   "image": [
+    "9",
+    0
+   ]
+  }
+ },
+ "23": {
+  "class_type": "MaskToImage",
+  "_meta": {
+   "title": "Mask as image"
+  },
+  "inputs": {
+   "mask": [
+    "22",
+    0
+   ]
+  }
+ },
+ "24": {
+  "class_type": "SaveImage",
+  "_meta": {
+   "title": "Save mask"
+  },
+  "inputs": {
+   "images": [
+    "23",
+    0
+   ],
+   "filename_prefix": "spriteforge/out_mask"
+  }
+ }
+}

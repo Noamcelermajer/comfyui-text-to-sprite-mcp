@@ -1,0 +1,96 @@
+{
+  "id": "portrait",
+  "kind": "portrait",
+  "title": "Portrait / character art",
+  "description": "Character portraits and key art (dialogue portraits, cards, menus) at full resolution. Z-Image Turbo.",
+  "status": "tested",
+  "graph": "../graphs/z_image_t2i.json",
+  "vram_group": "zimage",
+  "min_vram_gb": 8,
+  "batch": true,
+  "prompt_template": "{prompt}{style}. Character portrait for a game, head and shoulders, expressive face, detailed, centred",
+  "prompt_guide": "Who, their expression, outfit and the mood/lighting: 'a grizzled dwarf blacksmith with a braided grey beard, soot on his cheeks, warm forge light, determined look'. Set remove_background true for a cut-out dialogue portrait.",
+  "set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "5.text": "{prompt}",
+    "7.width": "{width}",
+    "7.height": "{height}",
+    "7.batch_size": "{candidates}",
+    "8.seed": "{seed}",
+    "8.steps": "{steps}",
+    "8.cfg": "{cfg}"
+  },
+  "tiers": {
+    "8": {
+      "limits": {
+        "candidates": 2
+      }
+    }
+  },
+  "presets": {
+    "fast": {
+      "description": "FLUX.2 Klein 4B, one take",
+      "graph": "../graphs/klein_t2i.json",
+      "set": {
+        "1.unet_name": "{model}",
+        "2.clip_name": "{text_encoder}",
+        "5.text": "{prompt}",
+        "7.width": "{width}",
+        "7.height": "{height}",
+        "7.batch_size": "{candidates}",
+        "8.noise_seed": "{seed}",
+        "10.steps": "{steps}",
+        "10.width": "{width}",
+        "10.height": "{height}",
+        "11.cfg": "{cfg}"
+      },
+      "vram_group": "klein",
+      "params": {
+        "model": "flux-2-klein-4b-fp8.safetensors",
+        "steps": 4,
+        "candidates": 1
+      }
+    },
+    "max": {
+      "description": "4 takes",
+      "params": {
+        "candidates": 4
+      }
+    }
+  },
+  "params": {
+    "model": "z_image_turbo_int8_convrot.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 8,
+    "cfg": 1.0,
+    "candidates": 2,
+    "remove_background": false,
+    "defringe": true,
+    "size": null,
+    "padding": 0.0,
+    "anchor": "center",
+    "background": "",
+    "rank_by_clip": true,
+    "keep_candidates": true
+  },
+  "param_help": {
+    "model": "diffusion model file (the preset normally picks it)",
+    "text_encoder": "text encoder file",
+    "width": "generation width in pixels (multiple of 16)",
+    "height": "generation height in pixels (multiple of 16)",
+    "steps": "sampling steps (the distilled models are made for 4 / 8)",
+    "cfg": "guidance (1.0 for the distilled models)",
+    "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
+    "remove_background": "cut the subject out with BiRefNet (transparent PNG)",
+    "defringe": "re-colour soft edges so no grey halo shows on dark backgrounds",
+    "size": "output canvas in pixels (square); null keeps the tight crop at full resolution",
+    "padding": "empty margin around the sprite, as a share of the canvas",
+    "anchor": "center, or bottom (feet on the ground line - characters and animation frames)",
+    "background": "what the model is told to put behind the subject; plain and light makes the cut-out cleanest",
+    "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
+    "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result"
+  }
+}

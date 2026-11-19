@@ -1,0 +1,11 @@
+{
+  "name": "sprite-forge",
+  "owner": {"name": "Noamcelermajer"},
+  "plugins": [
+    {
+      "name": "sprite-forge",
+      "source": "./",
+      "description": "Local 2D game art (sprites, pixel art, character sheets, tiles, VFX) on ComfyUI, as an MCP server plus a skill."
+    }
+  ]
+}

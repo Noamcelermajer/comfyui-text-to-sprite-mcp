@@ -1,0 +1,148 @@
+{
+  "id": "turnaround",
+  "kind": "sheet",
+  "title": "Character directions (4 / 8)",
+  "description": "The same character facing 4 or 8 directions, from a saved character reference, as frames, a sprite sheet and a JSON atlas. FLUX.2 Klein 4B reference editing; max uses Qwen-Image-Edit 2511.",
+  "status": "experimental",
+  "graph": "../graphs/klein_edit.json",
+  "vram_group": "klein",
+  "min_vram_gb": 8,
+  "batch": true,
+  "prompt_guide": "Needs `character` (create one with the character profile or create_character). The prompt is optional extra guidance ('keep the sword in the right hand').",
+  "set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "4.image": "{ref_file}",
+    "7.text": "{prompt}",
+    "11.width": "{width}",
+    "11.height": "{height}",
+    "11.batch_size": "{candidates}",
+    "12.noise_seed": "{seed}",
+    "14.steps": "{steps}",
+    "14.width": "{width}",
+    "14.height": "{height}",
+    "15.cfg": "{cfg}"
+  },
+  "tiers": {
+    "8": {
+      "limits": {
+        "frame_candidates": 1,
+        "candidates": 2
+      },
+      "presets": {
+        "max": {
+          "graph": "../graphs/klein_edit.json",
+          "set": {
+            "1.unet_name": "{model}",
+            "2.clip_name": "{text_encoder}",
+            "4.image": "{ref_file}",
+            "7.text": "{prompt}",
+            "11.width": "{width}",
+            "11.height": "{height}",
+            "11.batch_size": "{candidates}",
+            "12.noise_seed": "{seed}",
+            "14.steps": "{steps}",
+            "14.width": "{width}",
+            "14.height": "{height}",
+            "15.cfg": "{cfg}"
+          },
+          "vram_group": "klein",
+          "params": {
+            "frame_candidates": 1
+          }
+        }
+      }
+    },
+    "12": {
+      "presets": {
+        "max": {
+          "params": {
+            "frame_candidates": 1
+          }
+        }
+      }
+    }
+  },
+  "presets": {
+    "fast": {
+      "description": "4 directions, one take each",
+      "params": {
+        "directions": 4,
+        "frame_candidates": 1
+      }
+    },
+    "max": {
+      "description": "Qwen-Image-Edit 2511 (20B, int8) for the closest likeness between views - slower",
+      "graph": "../graphs/qwen_edit_2511.json",
+      "set": {
+        "7.image": "{ref_file}",
+        "9.prompt": "{prompt}",
+        "14.amount": "{candidates}",
+        "15.seed": "{seed}",
+        "15.steps": "{steps}",
+        "15.cfg": "{cfg}"
+      },
+      "vram_group": "qwen_edit",
+      "params": {
+        "steps": 4,
+        "frame_candidates": 2
+      }
+    }
+  },
+  "params": {
+    "model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1.0,
+    "candidates": 1,
+    "frame_candidates": 2,
+    "directions": 8,
+    "mirror": true,
+    "cell": 256,
+    "remove_background": true,
+    "defringe": true,
+    "size": null,
+    "padding": 0.05,
+    "anchor": "bottom",
+    "background": "plain flat light grey background",
+    "rank_by_clip": true,
+    "keep_candidates": true,
+    "fps": 8,
+    "pixel_grid": null,
+    "pixel_colors": 16,
+    "pixel_palette": null,
+    "pixel_outline": false,
+    "lora": "pixel_art_sprite_klein4b.safetensors",
+    "lora_strength": 1.0
+  },
+  "param_help": {
+    "model": "diffusion model file (the preset normally picks it)",
+    "text_encoder": "text encoder file",
+    "width": "generation width in pixels (multiple of 16)",
+    "height": "generation height in pixels (multiple of 16)",
+    "steps": "sampling steps (the distilled models are made for 4 / 8)",
+    "cfg": "guidance (1.0 for the distilled models)",
+    "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
+    "frame_candidates": "takes per frame; the one most like the character reference is kept",
+    "directions": "4 (down, right, up, left) or 8 (plus the diagonals)",
+    "mirror": "make the left-facing views by mirroring the right-facing ones (consistent, half the work; turn off for asymmetric characters)",
+    "cell": "frame size in pixels for the sheet (square)",
+    "remove_background": "cut the subject out with BiRefNet (transparent PNG)",
+    "defringe": "re-colour soft edges so no grey halo shows on dark backgrounds",
+    "size": "output canvas in pixels (square); null keeps the tight crop at full resolution",
+    "padding": "empty margin around the sprite, as a share of the canvas",
+    "anchor": "center, or bottom (feet on the ground line - characters and animation frames)",
+    "background": "what the model is told to put behind the subject; plain and light makes the cut-out cleanest",
+    "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
+    "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result",
+    "fps": "playback speed written into the atlas",
+    "pixel_grid": "make the frames pixel art: the tallest frame's height in real pixels (e.g. 32 or 48); null = normal sprites",
+    "pixel_colors": "pixel sheets: size of the ONE palette shared by every frame",
+    "pixel_palette": "pixel sheets: a named palette (pico8, gameboy, nes, endesga32, sweetie16), a list of hex colours, or 'project' (the game palette)",
+    "pixel_outline": "pixel sheets: add a 1-pixel dark outline to every frame",
+    "lora": "style LoRA file",
+    "lora_strength": "LoRA strength"
+  }
+}

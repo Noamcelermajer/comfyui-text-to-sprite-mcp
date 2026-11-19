@@ -1,0 +1,8 @@
+{
+  "id": "anime",
+  "title": "Anime",
+  "description": "Anime / JRPG character look.",
+  "status": "experimental",
+  "prompt": "anime style, clean line art, cel shading, vivid colours",
+  "params": {}
+}

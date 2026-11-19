@@ -1,0 +1,239 @@
+{
+ "1": {
+  "class_type": "UNETLoader",
+  "_meta": {
+   "title": "Load FLUX.2 Klein 4B"
+  },
+  "inputs": {
+   "unet_name": "flux-2-klein-4b-fp8.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "2": {
+  "class_type": "CLIPLoader",
+  "_meta": {
+   "title": "Load Qwen3 4B text encoder"
+  },
+  "inputs": {
+   "clip_name": "qwen_3_4b_fp8_mixed.safetensors",
+   "type": "flux2",
+   "device": "default"
+  }
+ },
+ "3": {
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Load FLUX.2 VAE"
+  },
+  "inputs": {
+   "vae_name": "flux2-vae.safetensors"
+  }
+ },
+ "4": {
+  "class_type": "LoraLoaderModelOnly",
+  "_meta": {
+   "title": "Style LoRA"
+  },
+  "inputs": {
+   "model": [
+    "1",
+    0
+   ],
+   "lora_name": "pixel_art_sprite_klein4b.safetensors",
+   "strength_model": 1.0
+  }
+ },
+ "5": {
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Prompt"
+  },
+  "inputs": {
+   "text": "",
+   "clip": [
+    "2",
+    0
+   ]
+  }
+ },
+ "6": {
+  "class_type": "ConditioningZeroOut",
+  "_meta": {
+   "title": "Empty negative"
+  },
+  "inputs": {
+   "conditioning": [
+    "5",
+    0
+   ]
+  }
+ },
+ "7": {
+  "class_type": "EmptyFlux2LatentImage",
+  "_meta": {
+   "title": "Canvas and takes"
+  },
+  "inputs": {
+   "width": 1024,
+   "height": 1024,
+   "batch_size": 1
+  }
+ },
+ "8": {
+  "class_type": "RandomNoise",
+  "_meta": {
+   "title": "Seed"
+  },
+  "inputs": {
+   "noise_seed": 0
+  }
+ },
+ "9": {
+  "class_type": "KSamplerSelect",
+  "_meta": {
+   "title": "Sampler"
+  },
+  "inputs": {
+   "sampler_name": "euler"
+  }
+ },
+ "10": {
+  "class_type": "Flux2Scheduler",
+  "_meta": {
+   "title": "Steps"
+  },
+  "inputs": {
+   "steps": 4,
+   "width": 1024,
+   "height": 1024
+  }
+ },
+ "11": {
+  "class_type": "CFGGuider",
+  "_meta": {
+   "title": "Guidance"
+  },
+  "inputs": {
+   "model": [
+    "4",
+    0
+   ],
+   "positive": [
+    "5",
+    0
+   ],
+   "negative": [
+    "6",
+    0
+   ],
+   "cfg": 1.0
+  }
+ },
+ "12": {
+  "class_type": "SamplerCustomAdvanced",
+  "_meta": {
+   "title": "Generate"
+  },
+  "inputs": {
+   "noise": [
+    "8",
+    0
+   ],
+   "guider": [
+    "11",
+    0
+   ],
+   "sampler": [
+    "9",
+    0
+   ],
+   "sigmas": [
+    "10",
+    0
+   ],
+   "latent_image": [
+    "7",
+    0
+   ]
+  }
+ },
+ "13": {
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "Decode"
+  },
+  "inputs": {
+   "samples": [
+    "12",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  }
+ },
+ "20": {
+  "class_type": "SaveImage",
+  "_meta": {
+   "title": "Save picture"
+  },
+  "inputs": {
+   "images": [
+    "13",
+    0
+   ],
+   "filename_prefix": "spriteforge/out_rgb"
+  }
+ },
+ "21": {
+  "class_type": "LoadBackgroundRemovalModel",
+  "_meta": {
+   "title": "Load BiRefNet"
+  },
+  "inputs": {
+   "bg_removal_name": "birefnet.safetensors"
+  }
+ },
+ "22": {
+  "class_type": "RemoveBackground",
+  "_meta": {
+   "title": "Find the foreground"
+  },
+  "inputs": {
+   "bg_removal_model": [
+    "21",
+    0
+   ],
+   "image": [
+    "13",
+    0
+   ]
+  }
+ },
+ "23": {
+  "class_type": "MaskToImage",
+  "_meta": {
+   "title": "Mask as image"
+  },
+  "inputs": {
+   "mask": [
+    "22",
+    0
+   ]
+  }
+ },
+ "24": {
+  "class_type": "SaveImage",
+  "_meta": {
+   "title": "Save mask"
+  },
+  "inputs": {
+   "images": [
+    "23",
+    0
+   ],
+   "filename_prefix": "spriteforge/out_mask"
+  }
+ }
+}

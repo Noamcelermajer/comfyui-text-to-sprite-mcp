@@ -1,0 +1,8 @@
+{
+  "name": "sprite-forge",
+  "version": "0.1.0",
+  "description": "Local 2D game art on your own GPU (ComfyUI): transparent sprites, icons, true pixel art (real grid, locked palette), characters with 4/8-direction turnarounds and animation sheets, seamless tiles, portraits and VFX frames, with best-of-N takes, checks and JSON atlases.",
+  "author": {"name": "Noamcelermajer"},
+  "license": "MIT",
+  "keywords": ["mcp", "comfyui", "sprites", "pixel-art", "sprite-sheet", "game-assets", "text-to-image", "skill"]
+}

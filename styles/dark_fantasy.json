@@ -1,0 +1,8 @@
+{
+  "id": "dark_fantasy",
+  "title": "Dark fantasy",
+  "description": "Gritty, desaturated, high-contrast.",
+  "status": "experimental",
+  "prompt": "dark fantasy art, gritty textures, muted desaturated colours, dramatic high-contrast lighting",
+  "params": {}
+}

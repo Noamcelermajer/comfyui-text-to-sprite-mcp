@@ -1,0 +1,155 @@
+{
+  "_about": "Every model file Sprite Forge can use, where it goes, and how big it is. `default: true` files are installed by `forge.py setup`; the rest are optional upgrades (`forge.py setup --all` or `forge.py models --install NAME`). Every model here allows commercial use of what you make with it; check each licence before shipping.",
+  "files": {
+    "flux-2-klein-4b-fp8.safetensors": {
+      "folder": "diffusion_models",
+      "size_gb": 4.07,
+      "default": true,
+      "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors",
+      "role": "main generator and reference editor (4B, 4 steps)",
+      "license": "Apache 2.0",
+      "profiles": [
+        "sprite",
+        "icon",
+        "pixel_sprite",
+        "character",
+        "turnaround",
+        "animation",
+        "tile",
+        "vfx"
+      ]
+    },
+    "qwen_3_4b_fp8_mixed.safetensors": {
+      "folder": "text_encoders",
+      "size_gb": 5.63,
+      "default": true,
+      "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b_fp8_mixed.safetensors",
+      "role": "text encoder for FLUX.2 Klein 4B and Z-Image Turbo (Qwen3 4B)",
+      "license": "Apache 2.0"
+    },
+    "flux2-vae.safetensors": {
+      "folder": "vae",
+      "size_gb": 0.34,
+      "default": true,
+      "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+      "role": "FLUX.2 VAE",
+      "license": "Apache 2.0"
+    },
+    "pixel_art_sprite_klein4b.safetensors": {
+      "folder": "loras",
+      "size_gb": 0.33,
+      "default": true,
+      "url": "https://huggingface.co/Limbicnation/pixel-art-lora/resolve/main/pytorch_lora_weights.comfyui.safetensors",
+      "role": "pixel-art sprite LoRA for FLUX.2 Klein 4B (Limbicnation, trained on CC0 data)",
+      "license": "Apache 2.0"
+    },
+    "z_image_turbo_int8_convrot.safetensors": {
+      "folder": "diffusion_models",
+      "size_gb": 6.2,
+      "default": true,
+      "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_int8_convrot.safetensors",
+      "role": "detailed generator for portraits and the max presets (6B, 8 steps)",
+      "license": "Apache 2.0"
+    },
+    "ae.safetensors": {
+      "folder": "vae",
+      "size_gb": 0.34,
+      "default": true,
+      "url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors",
+      "role": "Z-Image VAE",
+      "license": "Apache 2.0"
+    },
+    "birefnet.safetensors": {
+      "folder": "background_removal",
+      "size_gb": 0.42,
+      "default": true,
+      "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors",
+      "role": "background removal (BiRefNet)",
+      "license": "MIT"
+    },
+    "qwen_image_edit_2511_int8_convrot.safetensors": {
+      "folder": "diffusion_models",
+      "size_gb": 20.5,
+      "default": false,
+      "min_tier": 12,
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_int8_convrot.safetensors",
+      "role": "Qwen-Image-Edit 2511 (20B, int8): best character likeness for turnaround/animation max",
+      "license": "Apache 2.0",
+      "profiles": [
+        "turnaround:max",
+        "animation:max"
+      ]
+    },
+    "qwen_2.5_vl_7b_fp8_scaled.safetensors": {
+      "folder": "text_encoders",
+      "size_gb": 9.38,
+      "default": false,
+      "min_tier": 12,
+      "url": "https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "role": "text/vision encoder for Qwen-Image-Edit",
+      "license": "Apache 2.0"
+    },
+    "qwen_image_vae.safetensors": {
+      "folder": "vae",
+      "size_gb": 0.25,
+      "default": false,
+      "min_tier": 12,
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+      "role": "Qwen-Image VAE",
+      "license": "Apache 2.0"
+    },
+    "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors": {
+      "folder": "loras",
+      "size_gb": 0.85,
+      "default": false,
+      "min_tier": 12,
+      "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "role": "4-step Lightning LoRA for Qwen-Image-Edit 2511",
+      "license": "Apache 2.0"
+    }
+  },
+  "repos": {
+    "openai/clip-vit-base-patch32": {
+      "local": true,
+      "size_gb": 0.6,
+      "default": true,
+      "license": "MIT",
+      "role": "CLIP: ranks takes by prompt match and frames by likeness to the character",
+      "profiles": [
+        "sprite",
+        "icon",
+        "pixel_sprite",
+        "character",
+        "turnaround",
+        "animation",
+        "tile",
+        "portrait",
+        "vfx"
+      ]
+    }
+  },
+  "node_packs": [],
+  "not_used": {
+    "qwen_image_2.1": "Qwen-Image 2.1 makes native RGBA images, but its Qwen Research License allows research and evaluation only - not for a game you sell.",
+    "flux-2-klein-9b": "FLUX.2 Klein 9B is under the FLUX non-commercial licence; the Apache 2.0 4B model is used instead.",
+    "RMBG-2.0": "BRIA RMBG-2.0 is CC BY-NC (non-commercial); BiRefNet (MIT) is the same architecture."
+  },
+  "hardware_guide": {
+    "8": {
+      "summary": "Everything at standard (FLUX.2 Klein 4B fp8 + Z-Image int8). At most 2 takes; turnaround/animation max stays on Klein because the 20B edit model does not fit.",
+      "measured": false
+    },
+    "12": {
+      "summary": "Everything. The Qwen-Image-Edit max presets run with model offloading, one take per frame.",
+      "measured": false
+    },
+    "16": {
+      "summary": "Everything. Reference machine: RTX 5080 16 GB.",
+      "measured": true
+    },
+    "24": {
+      "summary": "Everything, with room to spare for more takes.",
+      "measured": false
+    }
+  }
+}

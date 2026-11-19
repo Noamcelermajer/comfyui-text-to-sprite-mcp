@@ -1,0 +1,8 @@
+{
+  "id": "cartoon",
+  "title": "Cartoon",
+  "description": "Bright, friendly cartoon look with bold outlines.",
+  "status": "experimental",
+  "prompt": "cartoon style, bold clean outlines, bright saturated colours, simple cel shading",
+  "params": {}
+}

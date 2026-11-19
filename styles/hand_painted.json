@@ -1,0 +1,8 @@
+{
+  "id": "hand_painted",
+  "title": "Hand-painted",
+  "description": "Painterly fantasy look, as in classic hand-painted RPG art.",
+  "status": "experimental",
+  "prompt": "hand-painted digital art, painterly brush strokes, soft warm lighting, rich colours",
+  "params": {}
+}

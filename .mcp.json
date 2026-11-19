@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sprite-forge": {
+      "command": "python",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/forge.py", "mcp"]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "sci_fi",
+  "title": "Sci-fi",
+  "description": "Clean futuristic hard-surface look with glowing accents.",
+  "status": "experimental",
+  "prompt": "sci-fi style, sleek hard-surface details, metallic materials, glowing cyan accents",
+  "params": {}
+}
