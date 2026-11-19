@@ -1,0 +1,140 @@
+{
+  "id": "animate_pixel",
+  "kind": "pixel_anim",
+  "title": "Animate a pixel sprite",
+  "description": "Animate an EXISTING pixel-art sprite (yours or one made here) from a description of the motion. Each frame is a pixel-art edit of the enlarged sprite, snapped back onto the sprite's own pixel grid and its own palette, so the frames match the original exactly in resolution and colours. Frames + sheet + atlas + GIF.",
+  "status": "experimental",
+  "graph": "../graphs/klein_edit_lora.json",
+  "vram_group": "klein",
+  "min_vram_gb": 8,
+  "batch": true,
+  "prompt_guide": "Call the animate_pixel tool with the sprite's PNG and the motion: 'swinging the sword down in front of him', 'bouncing up and down, squashing when it lands', 'the flame flickering'. For the best result give `poses`: one short description per frame of what changes (the agent can write these from the user's description). Walk / run / idle / attack / jump / hurt / death / cast in the description use the built-in key poses.",
+  "set": {
+    "1.unet_name": "{model}",
+    "2.clip_name": "{text_encoder}",
+    "4.image": "{ref_file}",
+    "7.text": "{prompt}",
+    "11.width": "{width}",
+    "11.height": "{height}",
+    "11.batch_size": "{candidates}",
+    "12.noise_seed": "{seed}",
+    "14.steps": "{steps}",
+    "14.width": "{width}",
+    "14.height": "{height}",
+    "15.cfg": "{cfg}",
+    "30.lora_name": "{lora}",
+    "30.strength_model": "{lora_strength}"
+  },
+  "tiers": {
+    "8": {
+      "limits": {
+        "frame_candidates": 1,
+        "candidates": 2
+      },
+      "presets": {
+        "max": {
+          "graph": "../graphs/klein_edit.json",
+          "set": {
+            "1.unet_name": "{model}",
+            "2.clip_name": "{text_encoder}",
+            "4.image": "{ref_file}",
+            "7.text": "{prompt}",
+            "11.width": "{width}",
+            "11.height": "{height}",
+            "11.batch_size": "{candidates}",
+            "12.noise_seed": "{seed}",
+            "14.steps": "{steps}",
+            "14.width": "{width}",
+            "14.height": "{height}",
+            "15.cfg": "{cfg}"
+          },
+          "vram_group": "klein",
+          "params": {
+            "frame_candidates": 1
+          }
+        }
+      }
+    },
+    "12": {
+      "presets": {
+        "max": {
+          "params": {
+            "frame_candidates": 1
+          }
+        }
+      }
+    }
+  },
+  "presets": {
+    "fast": {
+      "description": "one take per frame",
+      "params": {
+        "frame_candidates": 1
+      }
+    },
+    "max": {
+      "description": "3 takes per frame",
+      "params": {
+        "frame_candidates": 3
+      }
+    }
+  },
+  "params": {
+    "model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1.0,
+    "candidates": 1,
+    "frame_candidates": 2,
+    "frames": 0,
+    "poses": null,
+    "fps": 8,
+    "room": 0.35,
+    "canvas_size": 1024,
+    "include_original": false,
+    "pad": 1,
+    "procedural": "auto",
+    "motion_amount": 1.0,
+    "keep_outline": "auto",
+    "lora": "pixel_art_sprite_klein4b.safetensors",
+    "lora_strength": 0.8,
+    "remove_background": true,
+    "defringe": false,
+    "rank_by_clip": true,
+    "keep_candidates": true,
+    "normal_map": false,
+    "normal_strength": 1.0,
+    "normal_y": "up"
+  },
+  "param_help": {
+    "model": "diffusion model file (the preset normally picks it)",
+    "text_encoder": "text encoder file",
+    "width": "generation width in pixels (multiple of 16)",
+    "height": "generation height in pixels (multiple of 16)",
+    "steps": "sampling steps (the distilled models are made for 4 / 8)",
+    "cfg": "guidance (1.0 for the distilled models)",
+    "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
+    "frame_candidates": "takes per frame; the one most like the character reference is kept",
+    "frames": "number of frames (0 = the motion's own count; 4 for a described motion)",
+    "poses": "your own pose description per frame (a list); overrides the action's built-in poses",
+    "fps": "playback speed written into the atlas",
+    "room": "animate_pixel: free space around the sprite for swings and jumps, as a share of the canvas",
+    "canvas_size": "animate_pixel: working canvas in pixels the sprite is enlarged onto",
+    "include_original": "animate_pixel: put the untouched sprite in as frame 0",
+    "pad": "animate_pixel: empty pixels kept around the animation's bounding box",
+    "procedural": "animate_pixel: auto = bounce/squash, bob/float, breathe, shake, pulse and flash are done exactly in code (no AI); off = always redraw with the model; or name one of those motions",
+    "motion_amount": "animate_pixel: how strong a procedural motion is (0.5 - 2)",
+    "keep_outline": "animate_pixel: auto = if the sprite has a 1-pixel dark outline, every redrawn frame gets it back",
+    "lora": "style LoRA file",
+    "lora_strength": "LoRA strength",
+    "remove_background": "cut the subject out with BiRefNet (transparent PNG)",
+    "defringe": "re-colour soft edges so no grey halo shows on dark backgrounds",
+    "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
+    "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result",
+    "normal_map": "also write <name>_normal.png (2D lighting: Godot CanvasTexture, Unity 2D lights) and a lit preview",
+    "normal_strength": "how pronounced the relief of the normal map is (0.5 subtle - 2 strong)",
+    "normal_y": "up = OpenGL convention, green points up (Godot, Unity); down = DirectX"
+  }
+}

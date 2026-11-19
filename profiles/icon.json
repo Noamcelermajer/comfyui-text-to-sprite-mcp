@@ -79,7 +79,10 @@
       256,
       128,
       64
-    ]
+    ],
+    "normal_map": false,
+    "normal_strength": 1.0,
+    "normal_y": "up"
   },
   "param_help": {
     "model": "diffusion model file (the preset normally picks it)",
@@ -97,6 +100,9 @@
     "background": "what the model is told to put behind the subject; plain and light makes the cut-out cleanest",
     "rank_by_clip": "rank the takes by how well they match the prompt (CLIP)",
     "keep_candidates": "keep every take in .spriteforge/<name>/ next to the result",
-    "sizes": "extra square sizes to export (name_128.png ...)"
+    "sizes": "extra square sizes to export (name_128.png ...)",
+    "normal_map": "also write <name>_normal.png (2D lighting: Godot CanvasTexture, Unity 2D lights) and a lit preview",
+    "normal_strength": "how pronounced the relief of the normal map is (0.5 subtle - 2 strong)",
+    "normal_y": "up = OpenGL convention, green points up (Godot, Unity); down = DirectX"
   }
 }

@@ -115,7 +115,10 @@
     "pixel_palette": null,
     "pixel_outline": false,
     "lora": "pixel_art_sprite_klein4b.safetensors",
-    "lora_strength": 1.0
+    "lora_strength": 1.0,
+    "normal_map": false,
+    "normal_strength": 1.0,
+    "normal_y": "up"
   },
   "param_help": {
     "model": "diffusion model file (the preset normally picks it)",
@@ -143,6 +146,9 @@
     "pixel_palette": "pixel sheets: a named palette (pico8, gameboy, nes, endesga32, sweetie16), a list of hex colours, or 'project' (the game palette)",
     "pixel_outline": "pixel sheets: add a 1-pixel dark outline to every frame",
     "lora": "style LoRA file",
-    "lora_strength": "LoRA strength"
+    "lora_strength": "LoRA strength",
+    "normal_map": "also write <name>_normal.png (2D lighting: Godot CanvasTexture, Unity 2D lights) and a lit preview",
+    "normal_strength": "how pronounced the relief of the normal map is (0.5 subtle - 2 strong)",
+    "normal_y": "up = OpenGL convention, green points up (Godot, Unity); down = DirectX"
   }
 }

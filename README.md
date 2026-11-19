@@ -3,7 +3,8 @@
 **Turn a sentence into game-ready 2D art on your own GPU.** Free, private and offline:
 transparent sprites and icons, **true pixel art** (a real pixel grid and a locked palette, not
 just a pixel "look"), characters with 4/8-direction turnarounds and animation sprite sheets,
-seamless tiles, portraits and VFX frames - driven by your coding agent or the command line.
+seamless tiles, portraits and VFX frames, **animating your own pixel sprites from a description**,
+and **normal maps for 2D lighting** - driven by your coding agent or the command line.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP server](https://img.shields.io/badge/MCP-server-blueviolet)](https://modelcontextprotocol.io)
@@ -31,6 +32,11 @@ profile / preset / skill design.
   "unfakers" do (edge-profile cell detection with drift-following boundaries, dominant
   colour per cell, OKLab palette matching, orphan cleanup, hard alpha), with named palettes
   (PICO-8, Game Boy, NES, Endesga 32, Sweetie 16) or **one frozen palette for your whole game**.
+- **Animate your own pixel art.** Give it a sprite and "swinging the sword down" (or one line per
+  frame); every frame is redrawn from the sprite and snapped back onto its exact pixel grid and
+  palette, so the animation matches the original.
+- **Normal maps.** Relief inferred from the drawing (outline, colour regions, highlights), like
+  Laigter / SpriteIlluminator, in OpenGL or DirectX convention, crisp on pixel art.
 - **Characters stay themselves.** A character is created once and saved; turnarounds and
   animations are reference edits of it, ranked by CLIP likeness to the reference.
 - **Best of N.** Several takes per call, ranked by prompt match (CLIP) and by the checks
@@ -51,6 +57,11 @@ profile / preset / skill design.
 | `tile` | ground, walls, floors, water, foliage | Klein 4B (max: Z-Image Turbo) | seamless texture + 3x3 preview, optional pixel version |
 | `portrait` | dialogue portraits, cards, key art | Z-Image Turbo | full-resolution image |
 | `vfx` | explosions, smoke, magic bursts | Klein 4B + edits | frames + sheet + atlas, brightness as alpha |
+| `animate_pixel` | animate an existing pixel sprite from a description | Klein 4B edit + pixel LoRA | frames on the sprite's own grid and palette + sheet + atlas + GIF |
+
+Every sheet comes with a looping GIF. Any sprite or sheet can also get a **normal map**
+(`normal_map: true`, or `make_normal_map` / `forge.py normal` for any PNG) for Godot / Unity 2D
+lights, with a preview lit from four sides; pixel art keeps its grid with crisp, snapped normals.
 
 Sheets can be pixel art too: pass `pixel_grid` (e.g. 32) and every frame is converted with
 **one** pixel size and **one** palette, so the character never changes colour between frames.
@@ -74,6 +85,12 @@ weights load. Every job passed its checks; the results were also inspected by ey
 | `turnaround` ranger, 8 directions (5 generated, 3 mirrored) | 8 frames, sheet + atlas | 62 s |
 | `animation` ranger walk, facing right, 4 frames | 4 frames, sheet + atlas | 67 s |
 | `vfx` explosion, 6 frames | 6 frames, sheet + atlas | 25-29 s |
+
+| `portrait` dwarf blacksmith, Z-Image Turbo, 2 takes | 1024x1024 | 36 s |
+| `sprite` / `icon` / `tile` / `character` at `max` (Z-Image Turbo, 4 takes) | as above | 36 / 18 / 25 / 31 s |
+| `animate_pixel` knight sword swing, 4 frames from one-line poses | 30x47 px frames, original palette, sheet + GIF + normal map | 65 s |
+| `animate_pixel` slime bounce (procedural squash and stretch) | 6 frames, exact palette and outline | < 1 s |
+| `make_normal_map` on a 32 px sprite | normal map + 4-light preview | < 1 s |
 
 The whole GPU peaked at about 15.5 GB while ComfyUI kept the models cached; the models
 themselves are 4 GB (Klein) + 5.6 GB (text encoder). What the first test run found and fixed:
@@ -120,8 +137,9 @@ for agents: [AGENTS.md](AGENTS.md).
 
 From an agent: just ask ("make a 32x32 pixel-art slime enemy with the PICO-8 palette"). The
 skill tells it which profile, parameters and prompt style to use, and every result comes back
-with a preview image the agent looks at. The MCP server has 7 tools: `list_profiles`,
-`generate_sprite`, `create_character`, `get_job`, `check_image`, `models`, `forge_status`.
+with a preview image the agent looks at. The MCP server has 9 tools: `list_profiles`,
+`generate_sprite`, `create_character`, `animate_pixel`, `make_normal_map`, `get_job`, `check_image`, `models`,
+`forge_status`.
 
 From the command line (every command prints one JSON object):
 
@@ -133,6 +151,10 @@ python forge.py sprite ranger_dirs -p turnaround --character ranger --set direct
 python forge.py sprite ranger_walk -p animation --character ranger --set action=walk --set facing=right
 python forge.py sprite grass "short green grass with small flowers" -p tile --set pixelize=true
 python forge.py sprite boom "fiery orange explosion with black smoke" -p vfx --set frames=6
+python forge.py animate slime_bounce slime.png "bouncing up and down, squashing when it lands" --frames 4
+python forge.py animate knight_swing knight.png "swinging his sword" --pose "raising the sword high" --pose "swinging it down in front of him"
+python forge.py normal knight.png                       # knight_normal.png + knight_lit_preview.png
+python forge.py sprite crate "a wooden crate" --set normal_map=true
 python forge.py check some_sprite.png --kind sprite
 ```
 

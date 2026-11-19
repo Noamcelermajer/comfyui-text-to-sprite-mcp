@@ -8,6 +8,10 @@ r"""Sprite Forge command line. Every command prints one JSON object on stdout.
       profiles: sprite, icon, pixel_sprite, character, turnaround, animation, tile, portrait, vfx
       sheets:   --character ranger [--character-description "..."]  --set action=walk --set directions=4
   forge.py character ID "description"          create a named character reference
+  forge.py animate NAME SPRITE.png "motion" [--frames 4] [--pose "..." ...]
+                                               animate an existing pixel sprite (frames, sheet, atlas, GIF)
+  forge.py normal SPRITE.png [--pixel|--smooth] [--strength 1] [--directx]
+                                               normal map + lit preview for 2D lighting
   forge.py batch  jobs.json                    many assets, grouped by model
   forge.py check  FILE [--kind sprite]         measure a PNG: transparency, cut-off, shapes, seam, problems
   forge.py models [--install NAME ...]         what each profile needs / download catalog items
@@ -60,6 +64,12 @@ def main():
     p.add_argument("--character"); p.add_argument("--character-description"); common(p)
     p = sub.add_parser("character"); p.add_argument("character"); p.add_argument("description")
     p.add_argument("--preset", choices=["fast", "standard", "max"], default="standard"); common(p)
+    p = sub.add_parser("animate"); p.add_argument("name"); p.add_argument("image"); p.add_argument("description")
+    p.add_argument("--frames", type=int); p.add_argument("--pose", action="append", help="one per frame, in order")
+    p.add_argument("--preset", choices=["fast", "standard", "max"], default="standard"); common(p)
+    p = sub.add_parser("normal"); p.add_argument("image"); p.add_argument("--out")
+    p.add_argument("--pixel", action="store_true"); p.add_argument("--smooth", action="store_true")
+    p.add_argument("--strength", type=float, default=1.0); p.add_argument("--directx", action="store_true")
     p = sub.add_parser("batch"); p.add_argument("jobs"); common(p)
     p = sub.add_parser("check"); p.add_argument("file"); p.add_argument("--kind", default="sprite")
     p = sub.add_parser("models"); p.add_argument("--project"); p.add_argument("--install", nargs="+")
@@ -116,6 +126,15 @@ def main():
         elif a.cmd == "character":
             out = pipeline.create_character(a.character, a.description, a.project, a.seed, a.preset, a.style_preset, a.style,
                                             _params(a.set), a.force)
+        elif a.cmd == "animate":
+            prm = _params(a.set) or {}
+            if a.frames:
+                prm["frames"] = a.frames
+            out = pipeline.animate_pixel(a.name, a.image, a.description, a.project, a.out, a.seed, prm or None, a.force,
+                                         a.preset, a.pose)
+        elif a.cmd == "normal":
+            out = pipeline.make_normal_map(a.image, a.out, True if a.pixel else False if a.smooth else None, a.strength,
+                                           not a.directx)
         elif a.cmd == "batch":
             jobs = json.load(open(a.jobs, encoding="utf-8-sig"))
             results = pipeline.generate_batch(jobs, a.project, a.out, a.style, a.force)

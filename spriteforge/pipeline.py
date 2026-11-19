@@ -23,7 +23,7 @@ import uuid
 
 import numpy as np
 
-from . import comfy, pixel, profiles, score, sprite
+from . import comfy, motion, normals, pixel, profiles, score, sprite
 from .config import FORGE_ROOT, load_machine, log
 
 OUT_SUBFOLDER = "spriteforge"
@@ -328,6 +328,9 @@ def _single(p, name, prompt, ctx, out, dst, key, seed, t0):
     files = {"main": dst}
     for suffix, arr in best["extra"].items():
         files[suffix] = sprite.save_png(arr, os.path.join(out, f"{name}_{suffix}.png"))
+    if q.get("normal_map"):
+        files.update(add_normal_maps([best["rgba"]], out, name, kind == "pixel", float(q.get("normal_strength", 1.0)),
+                                     q.get("normal_y", "up") == "up"))
     preview = _preview(best["rgba"] if kind != "tile" else best["extra"]["tiled_preview"],
                        os.path.join(work, "preview.png"))
     if not q.get("keep_candidates", True):
@@ -442,6 +445,51 @@ def _pixel_sheet(frames, q):
                                        "palette": q.get("pixel_palette") or "shared, chosen from all frames"}}
 
 
+def write_gif(frames, path, fps=8, scale=1, background=None):
+    """Animated preview (loops). Transparent pixels stay transparent unless a background is given."""
+    from PIL import Image
+    ims = []
+    for f in frames:
+        f = sprite.upscale_nearest(f, scale) if scale > 1 else f
+        im = Image.fromarray((np.clip(f, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA")
+        if background is not None:
+            bg = Image.new("RGBA", im.size, tuple(int(c * 255) for c in background) + (255,))
+            bg.alpha_composite(im)
+            im = bg
+        ims.append(im)
+    if background is None:  # GIF has 1-bit transparency: palette index 255 is "clear"
+        conv = []
+        for im in ims:
+            a = im.getchannel("A")
+            p = im.convert("RGB").quantize(colors=255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+            p.paste(255, mask=a.point(lambda v: 255 if v < 128 else 0))
+            conv.append(p)
+        conv[0].save(path, save_all=True, append_images=conv[1:], duration=int(1000 / max(1, fps)), loop=0,
+                     transparency=255, disposal=2)
+    else:
+        ims[0].convert("RGB").save(path, save_all=True, append_images=[i.convert("RGB") for i in ims[1:]],
+                                   duration=int(1000 / max(1, fps)), loop=0)
+    return path
+
+
+def add_normal_maps(rgba_list, out, name, pixel_art, strength=1.0, y_up=True, sheet_layout=None):
+    """Normal map (+ a 4-light preview) for one sprite or for every frame of a sheet."""
+    files = {}
+    maps = [normals.normal_map(f, strength, pixel=pixel_art, y_up=y_up) for f in rgba_list]
+    if sheet_layout is None:
+        files["normal"] = sprite.save_png(maps[0], os.path.join(out, f"{name}_normal.png"))
+        lit = normals.light_strip(rgba_list[0], maps[0], y_up)
+    else:
+        cols = sheet_layout
+        sheet, _ = sprite.pack_sheet(maps, [str(i) for i in range(len(maps))], "", cols)
+        files["normal"] = sprite.save_png(sheet, os.path.join(out, f"{name}_sheet_normal.png"))
+        lit = np.concatenate([normals.lit_preview(f, m, y_up=y_up) for f, m in zip(rgba_list, maps)], axis=1)
+    if pixel_art:
+        lit = sprite.upscale_nearest(lit, 8)
+    files["lit_preview"] = sprite.save_png(lit, os.path.join(out, f"{name}_lit_preview.png"))
+    return files
+
+
 def _write_sheet(name, out, frames, ids, tags, fps, columns=None, preview_scale=0):
     folder = os.path.join(out, name)
     os.makedirs(folder, exist_ok=True)
@@ -449,7 +497,8 @@ def _write_sheet(name, out, frames, ids, tags, fps, columns=None, preview_scale=
     sheet, atlas = sprite.pack_sheet(frames, [f"{name}/{i}" for i in ids], f"{name}_sheet.png", columns, tags, fps)
     sheet_path = sprite.save_png(sheet, os.path.join(out, f"{name}_sheet.png"))
     atlas_path = sprite.write_atlas(atlas, os.path.join(out, f"{name}.atlas.json"))
-    files = {"sheet": sheet_path, "atlas": atlas_path, "frames": frame_files}
+    files = {"sheet": sheet_path, "atlas": atlas_path, "frames": frame_files,
+             "gif": write_gif(frames, os.path.join(out, f"{name}.gif"), fps, max(1, preview_scale) if preview_scale > 1 else 1)}
     if preview_scale > 1:
         files[f"sheet_x{preview_scale}"] = sprite.save_png(sprite.upscale_nearest(sheet, preview_scale),
                                                           os.path.join(out, f"{name}_sheet_x{preview_scale}.png"))
@@ -644,6 +693,193 @@ def _vfx(p, name, prompt, ctx, out, t0):
                                      "peak_frame": peak_i}, gen_s
 
 
+# ----------------------------------------------------------------------------- animate an existing pixel sprite
+
+def load_pixel_art(path):
+    """A pixel-art PNG at its native size. An enlarged copy (x2 ... x16, hard pixels) is
+    reduced back to one pixel per pixel. Returns (rgba, scale it was stored at)."""
+    img = _load_png(path)
+    a = img[..., 3] > 0.5
+    img[..., 3] = a.astype(np.float32)
+    h, w = a.shape
+    best = 1
+    for k in range(16, 1, -1):  # largest k for which every k x k block is one colour
+        if h % k or w % k:
+            continue
+        blocks = img.reshape(h // k, k, w // k, k, 4)
+        if np.abs(blocks - blocks[:, :1, :, :1]).max() < 1e-3:
+            best = k
+            break
+    small = img[::best, ::best].copy() if best > 1 else img
+    if max(small.shape[:2]) > 256:
+        raise ValueError(f"{os.path.basename(path)} is {w}x{h}: that is not pixel art (or an enlarged copy of it). "
+                         "Animate pixel sprites up to 256 px, e.g. one made with the pixel_sprite profile")
+    return small, best
+
+
+def _pose_list(description, n, poses=None):
+    """One instruction per frame. Explicit `poses` win; otherwise a built-in action that the
+    description names; otherwise key moments of the described motion."""
+    if poses:
+        return [str(x) for x in poses]
+    d = (description or "").lower()
+    for action, ps in ACTIONS.items():
+        if re.search(rf"\b{action}", d):
+            ps = list(ps)
+            if n and n != len(ps):
+                ps = [ps[i] for i in np.linspace(0, len(ps) - 1, n).round().astype(int)]
+            return [f"{description} - {x}" for x in ps]
+    n = n or 4
+    moments = {2: ["the start of the motion", "the opposite extreme of the motion"],
+               3: ["the start of the motion", "the middle of the motion", "the end of the motion"]}
+    if n in moments:
+        m = moments[n]
+    else:
+        m = [f"key moment {i + 1} of {n} of one smooth looping cycle of the motion" +
+             (" - the starting pose" if i == 0 else " - the furthest point of the motion" if i == n // 2 else "")
+             for i in range(n)]
+    return [f"{description}: {x}" for x in m]
+
+
+def animate_pixel(name, image, description, project_dir=None, out_dir=None, seed=None, params=None, force=False,
+                  preset="standard", poses=None):
+    """Animate an existing pixel sprite: every frame is a pixel-art edit of the (enlarged)
+    sprite, snapped back to the sprite's own pixel grid and its own palette."""
+    name = safe_name(name)
+    if not description:
+        raise ValueError("describe the animation, e.g. 'swinging the sword overhead' or 'the flame flickering'")
+    if not os.path.isfile(image):
+        raise FileNotFoundError(image)
+    p = profiles.resolve("animate_pixel", project_dir, params, preset=preset)
+    q = p["params"]
+    out = out_dir_for(project_dir, out_dir)
+    os.makedirs(out, exist_ok=True)
+    manifest_path = os.path.join(out, f"{name}.json")
+    small, stored_scale = load_pixel_art(image)
+    h, w = small.shape[:2]
+    instructions = _pose_list(description, int(q.get("frames") or 0), poses or q.get("poses"))
+    seed_given = seed is not None
+    seed = random.randint(0, 2**31 - 1) if seed is None else int(seed)
+    key = _settings_key(p, description, {"image": os.path.abspath(image), "mtime": os.path.getmtime(image),
+                                         "poses": instructions, "seed": seed if seed_given else None})
+    if os.path.isfile(manifest_path) and not force:
+        old = json.load(open(manifest_path, encoding="utf-8"))
+        if old.get("settings_key") == key and os.path.isfile(old.get("file", "")):
+            return {**old, "cached": True}
+
+    # simple deformations (bounce, bob, breathe, shake, pulse, flash) are exact in code
+    proc = q.get("procedural", "auto")
+    chosen_motion = None
+    if proc and proc != "off":
+        chosen_motion = proc if proc in motion.MOTIONS else (motion.detect(description) if not (poses or q.get("poses")) else None)
+    t0 = time.time()
+    gen_s = 0.0
+    if chosen_motion:
+        smalls = motion.frames_for(small, chosen_motion, int(q.get("frames") or 0) or None, float(q.get("motion_amount", 1.0)))
+        report = [{"frame": i, "pose": f"{chosen_motion} {i + 1}/{len(smalls)} (procedural)"} for i in range(len(smalls))]
+        problems = []
+        instructions = [r["pose"] for r in report]
+        pal = None
+    else:
+        # the sprite's own palette, frozen for every frame
+        solid = small[..., 3] > 0.5
+        cols = np.unique((small[solid][:, :3] * 255).round().astype(int), axis=0) / 255.0
+        pal = cols.astype(np.float32) if len(cols) <= 64 else pixel.kmeans_palette(small[solid][:, :3], 32)
+
+        # enlarge onto a square canvas with room to move; the pixel size k is exact and known
+        canvas = int(q.get("canvas_size", 1024))
+        margin = float(q.get("room", 0.35))  # free space around the sprite for limbs, swings, jumps
+        k = max(2, int(canvas * (1 - margin) / max(h, w)))
+        big = sprite.upscale_nearest(small, k)
+        cells_x, cells_y = canvas // k, canvas // k
+        ox = ((cells_x - w) // 2) * k
+        oy = ((cells_y - h) - max(1, int(cells_y * margin / 4))) * k  # near the bottom: feet on a ground line
+        ref = np.zeros((canvas, canvas, 4), np.float32)
+        ref[oy:oy + big.shape[0], ox:ox + big.shape[1]] = big
+
+        comfy.ensure_server()
+        work = os.path.join(out, ".spriteforge", name)
+        os.makedirs(work, exist_ok=True)
+        ctx = {**q, "seed": seed, "width": canvas, "height": canvas}
+        jobs = [(str(i), _edit_instruction(
+            f"This is pixel art. Keep the same pixel-art style with the same chunky pixel size, the same colours and the same "
+            f"proportions, and keep it the same size in the picture. Change only the pose for this animation frame: {instr}"))
+            for i, instr in enumerate(instructions)]
+        chosen, gen_s = _edit_frames(p, jobs, ref, ctx, name, work, t0)
+
+        # back onto the sprite's grid: the cell size is k and the grid starts at (ox, oy) mod k
+        bx = np.arange(ox % k, canvas + 1, k)
+        by = np.arange(oy % k, canvas + 1, k)
+        bx = np.unique(np.concatenate([[0], bx, [canvas]]))
+        by = np.unique(np.concatenate([[0], by, [canvas]]))
+        smalls, report, problems = [], [], []
+        keep = q.get("keep_outline", "auto")
+        outline_rgb = motion.outline_colour(small) if (keep is True or (keep == "auto" and motion.has_outline(small))) else None
+        for i in range(len(instructions)):
+            c = chosen[str(i)]
+            labels = pixel.nearest(c["rgba"][..., :3], pal)
+            solid_f = c["rgba"][..., 3] >= 0.5
+            idx, alpha = pixel._cells(labels, solid_f, bx, by, pal)
+            f = np.dstack([pal[idx], alpha.astype(np.float32)])
+            f[~alpha, :3] = 0
+            f, removed = pixel.clean(f)
+            if outline_rgb is not None:
+                f = motion.reapply_outline(f, outline_rgb)
+            smalls.append(f)
+            flags = list(c["problems"])
+            if c.get("likeness") is not None and c["likeness"] < 0.75:
+                flags.append(f"may not look like the sprite (likeness {c['likeness']})")
+            if f[..., 3].sum() < 0.4 * small[..., 3].sum():
+                flags.append("much smaller than the original - parts may be missing")
+            problems += [f"frame {i}: {x}" for x in flags]
+            report.append({"frame": i, "pose": instructions[i], "likeness": c.get("likeness"), "problems": flags,
+                           "cleaned_pixels": removed})
+    if q.get("include_original") and not chosen_motion:
+        orig = np.zeros_like(smalls[0])
+        gy0, gx0 = int(np.searchsorted(by, oy)), int(np.searchsorted(bx, ox))
+        orig[gy0:gy0 + h, gx0:gx0 + w] = small[:orig.shape[0] - gy0, :orig.shape[1] - gx0]
+        smalls.insert(0, orig)
+        report.insert(0, {"frame": 0, "pose": "the original sprite"})
+    # one crop for all frames, so motion between frames is kept
+    union = np.zeros(smalls[0].shape[:2], bool)
+    for f in smalls:
+        union |= f[..., 3] > 0
+    ys, xs = np.nonzero(union)
+    pad = int(q.get("pad", 1))
+    y0, y1 = max(0, ys.min() - pad), min(union.shape[0], ys.max() + 1 + pad)
+    x0, x1 = max(0, xs.min() - pad), min(union.shape[1], xs.max() + 1 + pad)
+    frames = [f[y0:y1, x0:x1] for f in smalls]
+    ids = [f"{name}_{i}" for i in range(len(frames))]
+    tags = [{"name": name, "from": 0, "to": len(frames) - 1, "direction": "forward"}]
+    sheet, files = _write_sheet(name, out, frames, ids, tags, int(q.get("fps", 8)), preview_scale=8)
+    if q.get("normal_map"):
+        files.update(add_normal_maps(frames, out, name, True, float(q.get("normal_strength", 1.0)),
+                                     q.get("normal_y", "up") == "up", sheet_layout=min(len(frames), 8)))
+    result = {"name": name, "status": "ok" if not problems else "failed_check", "file": files["sheet"], "files": files,
+              "preview": files.get("sheet_x8"), "problems": problems, "source": os.path.abspath(image),
+              "source_size": [w, h], "source_stored_at_scale": stored_scale, "description": description,
+              "sheet": {"width": int(sheet.shape[1]), "height": int(sheet.shape[0]), "frames": len(frames),
+                        "frame_size": [int(frames[0].shape[1]), int(frames[0].shape[0])], "palette_size": int(len(pal)) if pal is not None else None},
+              "method": f"procedural {chosen_motion}" if chosen_motion else "pixel-art edits, snapped to the sprite's grid and palette",
+              "frames": report, "profile": "animate_pixel", "preset": p["preset"], "seed": seed,
+              "timings": {"generation_s": round(gen_s, 1), "total_s": round(time.time() - t0, 1)},
+              "settings": {k_: v for k_, v in q.items() if not k_.startswith("_")}, "settings_key": key}
+    json.dump(result, open(manifest_path, "w", encoding="utf-8"), indent=2, default=str)
+    return result
+
+
+def make_normal_map(path, out_path=None, pixel_art=None, strength=1.0, y_up=True):
+    """Normal map + lit preview for any existing sprite PNG."""
+    rgba = _load_png(path)
+    if pixel_art is None:
+        pixel_art = max(rgba.shape[:2]) <= 256
+    base = os.path.splitext(out_path or path)[0]
+    files = add_normal_maps([rgba], os.path.dirname(os.path.abspath(base)), os.path.basename(base), pixel_art, strength, y_up)
+    return {"status": "ok", "source": os.path.abspath(path), "pixel_art": pixel_art,
+            "convention": "OpenGL (green = up; Godot, Unity)" if y_up else "DirectX (green = down)", "files": files,
+            "preview": files["lit_preview"]}
+
+
 # ----------------------------------------------------------------------------- entry point
 
 def generate_sprite(profile_id, name, prompt=None, project_dir=None, out_dir=None, seed=None, style="", params=None,
@@ -652,6 +888,8 @@ def generate_sprite(profile_id, name, prompt=None, project_dir=None, out_dir=Non
     name = safe_name(name)
     p = profiles.resolve(profile_id, project_dir, params, preset=preset, style=style_preset)
     kind = p.get("kind")
+    if kind == "pixel_anim":
+        raise ValueError("animate_pixel animates an existing sprite: use the animate_pixel tool (forge.py animate NAME IMAGE \"motion\")")
     if kind not in SINGLE_KINDS + ("sheet", "vfx"):
         raise ValueError(f"'{profile_id}' is not a sprite profile")
     if kind != "sheet" and not prompt:
@@ -716,6 +954,11 @@ def generate_sprite(profile_id, name, prompt=None, project_dir=None, out_dir=Non
             sheet, files, problems, detail, gen_s = _vfx(p, name, prompt, ctx, out, t0)
         work = os.path.join(out, ".spriteforge", name)
         os.makedirs(work, exist_ok=True)
+        if p["params"].get("normal_map"):
+            frames_rgba = [_load_png(f) for f in files["frames"]]
+            files.update(add_normal_maps(frames_rgba, out, name, bool(p["params"].get("pixel_grid")),
+                                         float(p["params"].get("normal_strength", 1.0)),
+                                         p["params"].get("normal_y", "up") == "up", sheet_layout=len(frames_rgba) if kind == "sheet" and p["id"] == "turnaround" else min(len(frames_rgba), 8)))
         body = {"status": "ok" if not problems else "failed_check", "file": files["sheet"], "files": files,
                 "preview": _preview(sheet, os.path.join(work, "preview.png"), 768), "problems": problems,
                 "sheet": {"width": int(sheet.shape[1]), "height": int(sheet.shape[0]), "frames": len(files["frames"]),

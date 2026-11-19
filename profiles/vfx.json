@@ -91,7 +91,7 @@
     "steps": "sampling steps (the distilled models are made for 4 / 8)",
     "cfg": "guidance (1.0 for the distilled models)",
     "candidates": "takes generated in one batch; the best match to the prompt that passes the checks is kept",
-    "frames": "number of frames",
+    "frames": "number of frames (0 = the motion's own count; 4 for a described motion)",
     "stages": "your own description per frame (a list); overrides the built-in start / grow / peak / fade stages",
     "cell": "frame size in pixels for the sheet (square)",
     "fps": "playback speed written into the atlas",

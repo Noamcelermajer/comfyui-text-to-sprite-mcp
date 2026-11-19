@@ -113,6 +113,19 @@ def t_create_character(a):
     return _submit("character", a["character"], fn, a.get("wait_seconds", 50))
 
 
+def t_animate_pixel(a):
+    fn = lambda: pipeline.animate_pixel(a["name"], a["image"], a.get("description"), a.get("project_dir"), a.get("out_dir"),
+                                        a.get("seed"), a.get("params"), a.get("force", False), a.get("preset", "standard"),
+                                        a.get("poses"))
+    return _submit("animate", a["name"], fn, a.get("wait_seconds", 50))
+
+
+def t_normal_map(a):
+    pix = a.get("pixel_art")
+    r = pipeline.make_normal_map(a["path"], a.get("out_path"), pix, float(a.get("strength", 1.0)), a.get("y", "up") == "up")
+    return r, _image_block(r["preview"])
+
+
 def t_get_job(a):
     return _job_view(a["id"], a.get("wait_seconds", 50))
 
@@ -159,7 +172,22 @@ TOOLS = {
                          {"character": {"type": "string", "description": "Character id, e.g. ranger."},
                           "description": {"type": "string", "description": "Who they are, then outfit, colours and props."},
                           **_COMMON}, ["character", "description"]),
-    "get_job": (t_get_job, "Status or result of a generate_sprite / create_character job.",
+    "animate_pixel": (t_animate_pixel,
+                      "Animate an EXISTING pixel-art sprite (a PNG up to 256 px, or an enlarged copy with hard pixels) from a description of the motion. Every frame is redrawn from the sprite and snapped back onto its own pixel grid and palette, so frames match the original exactly. Returns frames, a sheet, a JSON atlas, a GIF and a preview; takes about 15-20 s per frame.",
+                      {"name": {"type": "string", "description": "Animation id; becomes the file names."},
+                       "image": {"type": "string", "description": "Absolute path of the pixel-art PNG to animate."},
+                       "description": {"type": "string", "description": "The motion, e.g. 'swinging the sword down in front of him', 'bouncing and squashing', 'the flame flickering'. walk/run/idle/attack/jump/hurt/death/cast use built-in key poses."},
+                       "poses": {"type": "array", "items": {"type": "string"}, "description": "Best results: one short description per frame of what changes, in order (write these from the user's description). Overrides frames."},
+                       "out_dir": {"type": "string", "description": "Output folder; overrides the project's."},
+                       **{k: v for k, v in _COMMON.items() if k != "style_preset" and k != "style"}}, ["name", "image", "description"]),
+    "make_normal_map": (t_normal_map,
+                        "Normal map for 2D lighting (Godot CanvasTexture / Light2D, Unity 2D lights) for any sprite PNG, plus a preview lit from four sides. Pixel art keeps its pixel grid with crisp, snapped normals. (Sprite profiles can also make one directly with params.normal_map = true.)",
+                        {"path": {"type": "string", "description": "Absolute path of the sprite PNG (transparent background)."},
+                         "pixel_art": {"type": "boolean", "description": "Pixel-art mode; default: yes when the image is 256 px or smaller."},
+                         "strength": {"type": "number", "description": "Relief strength, 0.5 subtle - 2 strong (default 1)."},
+                         "y": {"type": "string", "enum": ["up", "down"], "description": "up = OpenGL, green up (Godot, Unity, default); down = DirectX."},
+                         "out_path": {"type": "string", "description": "Where to write <name>_normal.png; default next to the sprite."}}, ["path"]),
+    "get_job": (t_get_job, "Status or result of a generate_sprite / create_character / animate_pixel job.",
                 {"id": {"type": "string"}, "wait_seconds": _WAIT}, ["id"]),
     "check_image": (t_check_image, "Measure any PNG: size, transparency coverage, whether the subject touches the edge (cut off), separate shapes, tile seam visibility, and problems. show=true also returns the image.",
                     {"path": {"type": "string", "description": "Absolute path of the file."},
@@ -177,7 +205,7 @@ def _handle(msg):
         return {"protocolVersion": version, "capabilities": {"tools": {}},
                 "serverInfo": {"name": "sprite-forge", "version": "0.1.0"},
                 "instructions": ("Local 2D game asset generation: sprites, icons, pixel art, characters with 4/8 directions and "
-                                 "animation sheets, seamless tiles, portraits and VFX frames. Start with list_profiles. Pass project_dir "
+                                 "animation sheets, seamless tiles, portraits, VFX frames, normal maps, and animating existing pixel sprites. Start with list_profiles. Pass project_dir "
                                  "so the project's style, output and characters folders apply. Longer jobs return a job id: poll get_job. "
                                  "Look at the returned preview before calling an asset done.")}
     if method == "ping":

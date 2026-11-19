@@ -1,6 +1,6 @@
 ---
 name: sprite-forge
-description: Generate 2D game art locally and for free - sprites, props, items, icons and UI elements with transparent backgrounds, true pixel art (real grid, limited palette), characters with 4/8-direction turnarounds and animation sprite sheets (walk, run, idle, attack...), seamless tiles, portraits and VFX frames - as game-ready PNGs and TexturePacker/Phaser JSON atlases. Use whenever the user asks to create, generate, regenerate or fix a sprite, 2D asset, pixel art, icon, sprite sheet, character sheet, walk cycle, tile or texture, portrait or effect animation, or to check a PNG.
+description: Generate 2D game art locally and for free - sprites, props, items, icons and UI elements with transparent backgrounds, true pixel art (real grid, limited palette), characters with 4/8-direction turnarounds and animation sprite sheets (walk, run, idle, attack...), animating an existing pixel sprite from a description, normal maps for 2D lighting, seamless tiles, portraits and VFX frames - as game-ready PNGs, GIFs and TexturePacker/Phaser JSON atlases. Use whenever the user asks to create, generate, regenerate, animate or fix a sprite, 2D asset, pixel art, icon, sprite sheet, character sheet, walk cycle, tile or texture, portrait, effect animation or normal map, or to check a PNG.
 ---
 
 # Sprite Forge
@@ -13,7 +13,7 @@ the best one is kept.
 ## How to call it
 
 Prefer the **`sprite-forge` MCP tools** when they are available:
-`list_profiles`, `generate_sprite`, `create_character`, `get_job`, `check_image`, `models`, `forge_status`.
+`list_profiles`, `generate_sprite`, `create_character`, `animate_pixel`, `make_normal_map`, `get_job`, `check_image`, `models`, `forge_status`.
 
 Otherwise use the command line from the Sprite Forge folder; every command prints one JSON object:
 
@@ -24,6 +24,8 @@ python forge.py sprite  <name> "<prompt>" -p pixel_sprite --set grid=32 --set pa
 python forge.py character <id> "<who, outfit, colours, props>" --project <game folder>
 python forge.py sprite  <name> -p turnaround --character <id> --set directions=8 --project <game folder>
 python forge.py sprite  <name> -p animation  --character <id> --set action=walk --set facing=right --project <game folder>
+python forge.py animate <name> <sprite.png> "<the motion>" --pose "<frame 1>" --pose "<frame 2>" ...
+python forge.py normal  <sprite.png>
 python forge.py check   <file.png> --kind sprite
 ```
 
@@ -43,6 +45,9 @@ Exit code 0 = ok, 2 = finished but the result failed its check, 1 = error.
 | `tile` | ground, walls, floors, water, foliage | seamless square texture + a 3x3 tiled preview (optional pixel version) |
 | `portrait` | dialogue portraits, cards, key art | full-resolution image |
 | `vfx` | explosions, smoke, magic bursts, hit sparks | frames + sheet + atlas; brightness is transparency |
+| `animate_pixel` (tool) | animate an EXISTING pixel sprite from a description | frames on the sprite's own grid and palette + sheet + atlas + GIF |
+
+Every sheet also gets `<name>.gif` (loops) so the user can watch it.
 
 Each has three presets: `fast` (one quick take), `standard` (the default), `max` (bigger
 model or more takes; Qwen-Image-Edit for turnarounds/animation). Say which preset you used.
@@ -82,6 +87,38 @@ model or more takes; Qwen-Image-Edit for turnarounds/animation). Say which prese
 - `outline: true` adds a 1-pixel dark outline; `canvas: 32` puts the sprite on a 32x32 grid.
 - No dithering is applied (it flickers in animation).
 
+## Animate an existing pixel sprite
+
+Use `animate_pixel` when the user already has a pixel sprite (their own, or one made with
+`pixel_sprite`) and describes a motion: "make the slime bounce", "animate the knight swinging
+his sword". It keeps the sprite's exact pixel size and palette in every frame.
+
+- `image`: the PNG (native size up to 256 px, or an enlarged copy with hard pixels).
+- `description`: the motion. walk / run / idle / attack / jump / hurt / death / cast use
+  built-in key poses.
+- **Write `poses` yourself for anything else**: one short line per frame saying what changes,
+  e.g. for a sword swing `["raising the sword high above his head", "the sword at the top,
+  body leaning back", "swinging the sword down in front of him", "the sword low after the
+  strike"]`. 3-6 frames read best. These are key poses, not in-betweens.
+- `params.include_original: true` puts the untouched sprite in as frame 0; `params.fps`.
+- Look at the GIF / preview: if a frame lost part of the sprite or changed it, re-run with a
+  new `seed` or `preset: "max"` (more takes per frame).
+
+## Normal maps (2D lighting)
+
+For games with 2D lights (Godot `CanvasTexture` + `Light2D`, Unity 2D lights, Phaser
+light2d), pass `params.normal_map: true` to sprite, icon, pixel_sprite, character,
+turnaround, animation or animate_pixel, or call `make_normal_map` on any existing PNG.
+
+- Writes `<name>_normal.png` (or `<name>_sheet_normal.png`, same layout as the sheet) and
+  `<name>_lit_preview.png` (the sprite lit from left, top, right and bottom) - show the user
+  the preview.
+- Pixel art keeps its pixel grid with crisp, snapped normals.
+- Default convention is OpenGL (green = up), which Godot and Unity expect; `normal_y: "down"`
+  / `y: "down"` for DirectX. `normal_strength` 0.5 subtle - 2 strong.
+- The relief is inferred from the drawing (outline, colour regions, highlights), not modelled:
+  it reads well under moving lights but is not a real depth scan.
+
 ## When the result says `failed_check`
 
 The file is written but should not be used as is. `problems` explains why.
@@ -95,6 +132,8 @@ The file is written but should not be used as is. `problems` explains why.
 | `may not have turned` (turnaround) | Re-run with `preset: "max"` (Qwen-Image-Edit follows view changes better). |
 | `no clear pixel grid found` | The picture was not drawn as pixel art: set `grid` to a number, or re-run. |
 | `visible seam` (tile) | Use an organic surface or raise `params.blend`; re-run. |
+| `much smaller than the original` (animate_pixel) | That frame lost part of the sprite: re-run with a new seed or give a clearer pose. |
+| `flat: almost a single colour` | The model drew a silhouette: re-run with a new seed; say "in full colour". |
 
 Same `name` + same settings returns the existing file; change a setting, the seed, or pass
 `force: true` to make a new one.

@@ -94,6 +94,7 @@ def main():
     bottoms = [sprite.bbox(f)[3] for f in frames]
     check(max(bottoms) - min(bottoms) <= 2, f"frames share a ground line {bottoms}")
     pixel_tests()
+    normal_and_anim_tests()
     print(f"\n{check.failed} failed; files in {TMP}")
     sys.exit(1 if check.failed else 0)
 
@@ -122,6 +123,44 @@ def fake_pixel_art(seed=3):
     soft = np.stack([ndi.gaussian_filter(big[..., c], 0.8) for c in range(4)], -1)
     soft[..., :3] += rng.normal(0, 0.025, soft[..., :3].shape)
     return true, np.clip(soft, 0, 1).astype(np.float32)
+
+
+def normal_and_anim_tests():
+    from spriteforge import normals
+    disc = np.zeros((40, 40, 4), np.float32)
+    yy, xx = np.mgrid[:40, :40]
+    m = (yy - 20) ** 2 + (xx - 20) ** 2 <= 17 ** 2
+    disc[m] = [0.6, 0.6, 0.6, 1]
+    for pix in (True, False):
+        n = normals.normal_map(disc, pixel=pix)
+        check(n[20, 5, 0] < 0.45 and n[20, 35, 0] > 0.55, f"normals (pixel={pix}): left edge faces left, right edge faces right")
+        check(n[5, 20, 1] > 0.55 and n[35, 20, 1] < 0.45, f"normals (pixel={pix}): top faces up (OpenGL green up)")
+        check(abs(n[20, 20, 2] - 1.0) < 0.15, f"normals (pixel={pix}): centre faces the viewer")
+    nd = normals.normal_map(disc, pixel=True, y_up=False)
+    check(nd[5, 20, 1] < 0.45, "DirectX convention flips green")
+    k = normals.normal_map(disc, pixel=True)
+    dirs = len(np.unique((k[m][:, :3] * 255).round().astype(int), axis=0))
+    check(dirs <= 17, f"pixel normals are snapped to few directions ({dirs})")
+    # enlarged pixel art is read back at its native size
+    true, _ = fake_pixel_art()
+    big = sprite.upscale_nearest(true, 8)
+    path = os.path.join(TMP, "x8.png")
+    sprite.save_png(big, path)
+    small, k8 = pipeline.load_pixel_art(path)
+    check(k8 == 8 and small.shape[:2] == true.shape[:2], f"x8 copy read back as {small.shape[:2]} at scale {k8}")
+    gif = pipeline.write_gif([true, true[:, ::-1]], os.path.join(TMP, "t.gif"), 4, 4)
+    check(os.path.getsize(gif) > 100, "animated GIF written")
+    check(len(pipeline._pose_list("walking forward", 0)) == 4, "built-in walk poses found in a description")
+    check(len(pipeline._pose_list("the flame flickering", 6)) == 6, "6 key moments for a free description")
+    check(pipeline._pose_list("x", 3, ["a", "b"]) == ["a", "b"], "explicit poses win")
+    from spriteforge import motion
+    for m in motion.MOTIONS:
+        fr = motion.frames_for(true, m)
+        cols = lambda f: {tuple(c) for c in (f[f[..., 3] > 0][:, :3] * 255).round().astype(int)}
+        allowed = cols(true) | {(255, 255, 255)}
+        same = len({f.shape for f in fr}) == 1
+        check(same and all(cols(f) <= allowed for f in fr), f"procedural {m}: {len(fr)} equal frames, no new colours")
+    check(motion.detect("bouncing happily") == "bounce" and motion.detect("swinging a sword") is None, "motion detection")
 
 
 def ndi_smooth(idx):
