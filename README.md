@@ -55,13 +55,37 @@ profile / preset / skill design.
 Sheets can be pixel art too: pass `pixel_grid` (e.g. 32) and every frame is converted with
 **one** pixel size and **one** palette, so the character never changes colour between frames.
 
-## Status
+## Measured
 
-Everything is built and the image processing is covered by offline tests
-(`tests/test_offline.py`: cut-out, defringe, canvas, pixel-grid recovery - 100% of pixels of a
-distorted 24x32 test sprite recovered, where a plain resize gets 67% - palettes, seamless
-tiles, sheets). **GPU timings per profile are being measured now** and will be added here;
-turnaround, animation and vfx are marked experimental until then.
+RTX 5080 16 GB, standard preset, seed 1234 (`tests/smoke_test.py`). Times are the whole call:
+generation, cut-out, ranking and saving. The first call of a session adds about 10 s while
+weights load. Every job passed its checks; the results were also inspected by eye.
+
+| Job | Result | Time |
+| :--- | :--- | ---: |
+| `sprite` mana potion, 4 takes | 512x512 transparent PNG | 10-18 s |
+| `sprite` treasure chest, 4 takes | 512x512 transparent PNG | 9.8 s |
+| `icon` flaming sword, 4 takes | 512 + 256/128/64 px | 8-15 s |
+| `pixel_sprite` knight, grid 32 | 20x32 px, 15 colours, hard alpha | 7 s |
+| `pixel_sprite` slime, grid 24, PICO-8, outline | 21x24 px, 5 PICO-8 colours | 5.5 s |
+| `tile` mossy cobblestone, 3 takes | 512x512 seamless | 6.8 s |
+| `tile` grass, pixelized | 512x512 + 32 px pixel tile | 7 s |
+| `character` ranger, 4 takes | 768x768 reference | 8 s |
+| `turnaround` ranger, 8 directions (5 generated, 3 mirrored) | 8 frames, sheet + atlas | 62 s |
+| `animation` ranger walk, facing right, 4 frames | 4 frames, sheet + atlas | 67 s |
+| `vfx` explosion, 6 frames | 6 frames, sheet + atlas | 25-29 s |
+
+The whole GPU peaked at about 15.5 GB while ComfyUI kept the models cached; the models
+themselves are 4 GB (Klein) + 5.6 GB (text encoder). What the first test run found and fixed:
+the icon prompt's "strong silhouette" wording produced black silhouettes (now asked for in
+colour, and a flat single-colour check catches it); the edit model kept every VFX stage at
+the peak's size (the timing is now enforced); pixel `grid: "auto"` locked onto noise-sized
+cells (now limited to plausible sprite pixels). Offline tests (`tests/test_offline.py`) cover
+the processing: pixel-grid recovery restores 100% of a distorted 24x32 test sprite, where a
+plain resize gets 67%.
+
+Animation frames are key poses edited from the character, not in-betweens: expect to touch
+them up. Effects come out best as fire, smoke and magic on black.
 
 ## Requirements
 
