@@ -243,7 +243,8 @@ def analyse(rgba):
         sizes = np.sort(ndimage.sum(np.ones_like(a), lab, range(1, n + 1)))[::-1]
         big = int((sizes >= sizes[0] * 0.12).sum())
     b = bbox(rgba)
-    return {"width": w, "height": h, "coverage": round(cov, 3), "touches_edge": round(float(border.mean()), 3),
+    spread = float(rgba[..., :3][solid].std(0).mean()) if solid.any() else 0.0
+    return {"width": w, "height": h, "coverage": round(cov, 3), "colour_spread": round(spread, 3), "touches_edge": round(float(border.mean()), 3),
             "objects": big, "bbox": b, "soft_edge_share": round(float(((a > 0.05) & (a < 0.95)).mean() / max(cov, 1e-6)), 3)}
 
 
@@ -258,6 +259,8 @@ def problems_of(raw_stats, kind, final_stats=None):
         p.append("background not removed: the cut-out covers the whole picture")
     if kind not in ("vfx",) and raw_stats["touches_edge"] > 0.02:
         p.append("cut off: the subject touches the edge of the picture, part of it is probably missing")
+    if kind in ("sprite", "icon", "character", "frame") and raw_stats["coverage"] >= 0.01 and raw_stats.get("colour_spread", 1) < 0.035:
+        p.append("flat: almost a single colour (a silhouette), not a finished sprite")
     if kind in ("sprite", "icon", "character", "frame") and raw_stats["objects"] > 1:
         p.append(f"several objects: {raw_stats['objects']} separate shapes instead of one")
     return p

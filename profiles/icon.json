@@ -8,7 +8,7 @@
   "vram_group": "klein",
   "min_vram_gb": 8,
   "batch": true,
-  "prompt_template": "Game icon of {prompt}{style}. One bold, instantly readable subject centred and filling most of the square, clean shapes and a strong silhouette, {background}, no text, no letters, no border",
+  "prompt_template": "Game icon of {prompt}{style}. Rendered in full colour with shading and highlights, one bold, instantly readable subject centred and filling most of the square, clean shapes, {background}, no text, no letters, no border",
   "prompt_guide": "The subject and its mood in a few words: 'a flaming sword', 'a shield with a lion crest', 'a green poison flask with a skull'. For a skill or UI set keep the same style words (or a style_preset) on every icon.",
   "set": {
     "1.unet_name": "{model}",

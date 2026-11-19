@@ -218,12 +218,20 @@ def detect_cell(rgba, colors=16):
     cands = {c for c in (_peak_period(col), _peak_period(row), _autocorr_period(col), _autocorr_period(row)) if c and c >= 2}
     if not cands:
         return None, {}
+    # A game sprite is at most ~128 px on its longest side, so smaller cells are noise, not
+    # pixels. Every image looks "clean" at tiny cells, so among the plausible candidates take
+    # the LARGEST whose cells are nearly as uniform as the best one.
+    min_cell = max(4.0, max(rgba.shape[:2]) / 128.0)
+    cands = {c for c in cands if c >= min_cell}
+    if not cands:
+        return None, {"candidates": []}
     lab = oklab(rgba[..., :3])
     scored = []
     for c in sorted(cands):
         bx, by = _boundaries(col, c, rgba.shape[1]), _boundaries(row, c, rgba.shape[0])
-        scored.append((_variance(lab, solid, bx, by) * (1 + 0.15 * (c < 3)), c))
-    v, c = min(scored)
+        scored.append((_variance(lab, solid, bx, by), c))
+    best_v = min(v for v, _ in scored)
+    v, c = max((x for x in scored if x[0] <= best_v * 1.3 + 0.004), key=lambda t: t[1])
     return c, {"candidates": sorted(cands), "cell_variance": round(v, 4)}
 
 
@@ -252,6 +260,7 @@ def regrid(rgba, grid=None, colors=16, palette=None, cell=None, pal_rgb=None):
             if not cell:
                 cell = max(h, w) / 32.0
                 info["cell_from"] = "no grid found - fell back to 32 pixels"
+                grid = 32
     bx, by = _boundaries(col, cell, w), _boundaries(row, cell, h)
     if grid:  # exactly `grid` cells along the longest side
         long_b = bx if w >= h else by
@@ -273,6 +282,32 @@ def regrid(rgba, grid=None, colors=16, palette=None, cell=None, pal_rgb=None):
                 grid_confidence=round(float(edge_energy), 2),
                 cell_variance=round(_variance(oklab(rgba[..., :3]), solid, bx, by), 4))
     return small, pal_rgb, info
+
+
+def despeckle(small, max_dist=0.08):
+    """Shading noise: a pixel whose 4 neighbours are (at least 3 of 4) one colour that is close
+    to its own (OKLab distance < max_dist) takes that colour. High-contrast details such as
+    eyes and highlights are far from their neighbours and stay."""
+    out = small.copy()
+    a = out[..., 3] > 0
+    H, W = a.shape
+    lab = oklab(out[..., :3])
+    key = np.where(a, (out[..., 0] * 255).round() * 65536 + (out[..., 1] * 255).round() * 256 + (out[..., 2] * 255).round(), -1)
+    changed = 0
+    for y in range(1, H - 1):
+        for x in range(1, W - 1):
+            if not a[y, x]:
+                continue
+            nb = [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]
+            ks = [key[p] for p in nb]
+            for k in set(ks):
+                if k >= 0 and k != key[y, x] and ks.count(k) >= 3:
+                    p = nb[ks.index(k)]
+                    if np.sqrt(((lab[y, x] - lab[p]) ** 2).sum()) < max_dist:
+                        out[y, x, :3] = out[p][:3]
+                        changed += 1
+                    break
+    return out, changed
 
 
 def clean(small, min_neighbours=1):
@@ -338,6 +373,8 @@ def pixelize(rgba, grid=32, colors=16, palette=None, outline_px=False, canvas=No
     g = None if grid in (None, "auto", 0) else int(grid)
     small, pal, info = regrid(c, g, colors, palette, cell, pal_rgb)
     small, removed = clean(small)
+    small, smoothed = despeckle(small)
+    removed += smoothed
     if outline_px:
         small = outline(small, pal)
     if canvas:
@@ -362,6 +399,8 @@ def pixelize_frames(frames, grid=32, colors=16, palette=None, outline_px=False, 
     for c in crops:
         small, _, info = regrid(c, None, colors, None, cell, fixed)
         small, removed = clean(small)
+        small, smoothed = despeckle(small)
+        removed += smoothed
         if outline_px:
             small = outline(small, fixed)
         out.append(small)
@@ -374,8 +413,7 @@ def pixelize_frames(frames, grid=32, colors=16, palette=None, outline_px=False, 
 
 def pixel_problems(info, kind="pixel"):
     p = []
-    if info.get("cell_from", "").startswith("no grid"):
-        p.append("no clear pixel grid found: the picture was not drawn as pixel art, so this is a plain downscale")
+    # (grid "auto" that finds no grid falls back to 32 px; info["cell_from"] says so)
     if info.get("partial_alpha"):
         p.append(f"{info['partial_alpha']} semi-transparent pixels (pixel art should be fully on or off)")
     if info.get("opaque_pixels", 1) and info.get("orphans", 0) > 0.02 * info["opaque_pixels"]:

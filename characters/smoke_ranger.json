@@ -1,0 +1,97 @@
+{
+  "name": "smoke_ranger",
+  "status": "ok",
+  "file": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\smoke_ranger.png",
+  "files": {
+    "main": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\smoke_ranger.png"
+  },
+  "preview": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\.spriteforge\\smoke_ranger\\preview.png",
+  "problems": [],
+  "image": {
+    "width": 768,
+    "height": 768
+  },
+  "raw_stats": {
+    "width": 1024,
+    "height": 1024,
+    "coverage": 0.167,
+    "touches_edge": 0.0,
+    "objects": 1,
+    "bbox": [
+      323,
+      43,
+      686,
+      991
+    ],
+    "soft_edge_share": 0.054
+  },
+  "candidates": [
+    {
+      "index": 0,
+      "clip": 0.364,
+      "problems": [],
+      "file": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\.spriteforge\\smoke_ranger\\take_0.png"
+    },
+    {
+      "index": 1,
+      "clip": 0.3549,
+      "problems": [],
+      "file": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\.spriteforge\\smoke_ranger\\take_1.png"
+    },
+    {
+      "index": 2,
+      "clip": 0.3645,
+      "problems": [],
+      "file": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\.spriteforge\\smoke_ranger\\take_2.png"
+    },
+    {
+      "index": 3,
+      "clip": 0.3606,
+      "problems": [],
+      "file": "C:\\Users\\nacworkstation\\Documents\\Projects\\Comfyui\\ComfyUI-Easy-Install\\SpriteForge\\characters\\.spriteforge\\smoke_ranger\\take_3.png"
+    }
+  ],
+  "chosen": 2,
+  "chosen_by": "CLIP prompt match",
+  "timings": {
+    "generation_s": 0.2,
+    "total_s": 1.8
+  },
+  "slowest_nodes": [
+    [
+      "20:SaveImage",
+      0.1
+    ],
+    [
+      "24:SaveImage",
+      0.1
+    ]
+  ],
+  "profile": "character",
+  "preset": "standard",
+  "kind": "character",
+  "prompt": "a young female ranger with short red hair, a green hooded cloak, brown leather armour and boots, a longbow on her back",
+  "model_prompt": "a young female ranger with short red hair, a green hooded cloak, brown leather armour and boots, a longbow on her back. Full-body game character standing in a neutral relaxed pose, arms slightly away from the body, front view, facing the viewer, the whole figure from head to feet visible and centred, plain flat light grey background, no shadow, no text",
+  "seed": 1234,
+  "settings": {
+    "model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b_fp8_mixed.safetensors",
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1.0,
+    "candidates": 4,
+    "view": "front view, facing the viewer",
+    "remove_background": true,
+    "defringe": true,
+    "size": 768,
+    "padding": 0.06,
+    "anchor": "bottom",
+    "background": "plain flat light grey background",
+    "rank_by_clip": true,
+    "keep_candidates": true,
+    "sizes": []
+  },
+  "settings_key": "0a6922d35c61",
+  "created": "2026-11-19 17:03"
+}

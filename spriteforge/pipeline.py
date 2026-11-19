@@ -553,6 +553,21 @@ def _animation(p, name, prompt, ctx, character, out, t0, project_dir):
     return sheet, files, problems, {"action": action, "facing": facing, "frames": report, **extra}, gen_s
 
 
+def _scale_about_centre(rgba, s):
+    """Scale a whole canvas by s around its centre, keeping the canvas size."""
+    h, w = rgba.shape[:2]
+    nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
+    r = sprite._resize(rgba, nw, nh)
+    out = np.zeros_like(rgba)
+    if s <= 1:
+        y, x = (h - nh) // 2, (w - nw) // 2
+        out[y:y + nh, x:x + nw] = r
+    else:
+        y, x = (nh - h) // 2, (nw - w) // 2
+        out[:] = r[y:y + h, x:x + w]
+    return out
+
+
 def _vfx_stages(n):
     peak = int(round(0.35 * (n - 1)))
     out = []
@@ -605,8 +620,18 @@ def _vfx(p, name, prompt, ctx, out, t0):
         frames_full[fid] = _cutout(pr[0], q)
     cell = int(q.get("cell", 256))
     frames, ids = [], []
+    pk = peak_i if peak_i is not None else 0
     for i, st in enumerate(stages):
         f = peak["rgba"] if st is None else frames_full[str(i)]
+        if peak_i is not None and i != pk:
+            # Edit models keep the effect at the peak's size, so the timing is enforced here:
+            # growth frames are scaled down around the centre, fading frames spread out and thin.
+            if i < pk:
+                f = _scale_about_centre(f, 0.3 + 0.7 * (i + 1) / (pk + 1))
+            else:
+                g = (i - pk) / max(1, len(stages) - 1 - pk)
+                f = _scale_about_centre(f, 1.0 + 0.15 * g)
+                f[..., 3] *= 1.0 - 0.8 * g
         frames.append(sprite._resize(f, cell, cell))  # whole canvas: keeps each stage's size and position
         ids.append(f"{name}_{i}")
     tags = [{"name": name, "from": 0, "to": len(frames) - 1, "direction": "forward"}]
