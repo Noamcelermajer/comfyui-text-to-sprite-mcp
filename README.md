@@ -85,9 +85,10 @@ weights load. Every job passed its checks; the results were also inspected by ey
 | `turnaround` ranger, 8 directions (5 generated, 3 mirrored) | 8 frames, sheet + atlas | 62 s |
 | `animation` ranger walk, facing right, 4 frames | 4 frames, sheet + atlas | 67 s |
 | `vfx` explosion, 6 frames | 6 frames, sheet + atlas | 25-29 s |
-
 | `portrait` dwarf blacksmith, Z-Image Turbo, 2 takes | 1024x1024 | 36 s |
 | `sprite` / `icon` / `tile` / `character` at `max` (Z-Image Turbo, 4 takes) | as above | 36 / 18 / 25 / 31 s |
+| `turnaround` ranger at `max` (Qwen-Image-Edit 2511), 8 directions | 8 frames, real back views, likeness 0.85-0.95 | 104 s |
+| `animation` ranger walk at `max` (Qwen-Image-Edit 2511), 4 frames | 4 frames, likeness 0.94-0.99 | 82 s |
 | `animate_pixel` knight sword swing, 4 frames from one-line poses | 30x47 px frames, original palette, sheet + GIF + normal map | 65 s |
 | `animate_pixel` slime bounce (procedural squash and stretch) | 6 frames, exact palette and outline | < 1 s |
 | `make_normal_map` on a 32 px sprite | normal map + 4-light preview | < 1 s |
